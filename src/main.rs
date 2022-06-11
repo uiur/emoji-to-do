@@ -18,6 +18,7 @@ enum SlackRequest {
     UrlVerification { challenge: String },
 
     EventCallback { event: SlackEvent },
+
     #[serde(other)]
     Other,
 }
@@ -27,14 +28,20 @@ enum SlackRequest {
 #[serde(tag = "type")]
 enum SlackEvent {
   // https://api.slack.com/events/reaction_added
-  ReactionAdded { user: String, reaction: String, item: SlackItem }
+  ReactionAdded { user: String, reaction: String, item: SlackItem },
+
+  #[serde(other)]
+  Other,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "type")]
 enum SlackItem {
-  Message { channel: String, ts: String }
+  Message { channel: String, ts: String },
+
+  #[serde(other)]
+  Other
 }
 
 async fn slack_post_message(channel: &str, text: &str) -> Result<(), ()> {
@@ -50,44 +57,39 @@ async fn slack_post_message(channel: &str, text: &str) -> Result<(), ()> {
     .bearer_auth(token)
     .json(&data)
     .send()
-    .await;
+    .await.map_err(|e| ())?;
 
-  match resp {
-    Ok(res) => {
-      info!("{}", res.status());
-      Ok(())
-    }
-
-    Err(e) => {
-      error!("{}", e);
-      Ok(())
-    }
-  }
+  Ok(())
 }
 
 #[post("/webhook/slack")]
-async fn webhook_slack(data: web::Json<SlackRequest>) -> impl Responder {
+async fn webhook_slack(data: web::Json<SlackRequest>) -> actix_web::Result<impl Responder> {
     info!("{:#?}", data);
 
     match data.0 {
         SlackRequest::UrlVerification { challenge } => {
-            HttpResponse::Ok().body(challenge)
+            Ok(HttpResponse::Ok().body(challenge))
         }
 
         SlackRequest::EventCallback { event } => {
           match event {
             SlackEvent::ReactionAdded { user, reaction, item } => {
               if let SlackItem::Message { channel, ts } = item {
-                slack_post_message(&channel, &format!(":{}:", reaction)).await;
+                slack_post_message(&channel, &format!(":{}:", reaction)).await
+                  .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
               }
 
-              HttpResponse::Ok().body("")
+              Ok(HttpResponse::Ok().body(""))
+            }
+
+            _ => {
+              Ok(HttpResponse::Ok().body(""))
             }
           }
         }
 
         _ => {
-            HttpResponse::BadRequest().finish()
+            Err(actix_web::error::ErrorBadRequest(""))
         }
     }
 }
