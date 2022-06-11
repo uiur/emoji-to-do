@@ -1,15 +1,111 @@
-use actix_web::{Responder, HttpResponse, App, HttpServer, get};
+use std::{env, collections::HashMap};
+
+use actix_web::{Responder, HttpResponse, App, HttpServer, get, post, middleware::Logger, web};
+use log::{info, error};
+use serde::Deserialize;
 
 #[get("/hello")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("hello")
 }
 
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "type")]
+enum SlackRequest {
+    // https://api.slack.com/events/url_verification
+    UrlVerification { challenge: String },
+
+    EventCallback { event: SlackEvent },
+    #[serde(other)]
+    Other,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "type")]
+enum SlackEvent {
+  // https://api.slack.com/events/reaction_added
+  ReactionAdded { user: String, reaction: String, item: SlackItem }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "type")]
+enum SlackItem {
+  Message { channel: String, ts: String }
+}
+
+async fn slack_post_message(channel: &str, text: &str) -> Result<(), ()> {
+  let client = reqwest::Client::new();
+  let token = env::var("SLACK_TOKEN").unwrap_or_default();
+
+  let mut data = HashMap::new();
+  data.insert("channel", channel);
+  data.insert("text", text);
+
+  let resp = client.post("https://slack.com/api/chat.postMessage")
+    .header("Content-Type", "application/json")
+    .bearer_auth(token)
+    .json(&data)
+    .send()
+    .await;
+
+  match resp {
+    Ok(res) => {
+      info!("{}", res.status());
+      Ok(())
+    }
+
+    Err(e) => {
+      error!("{}", e);
+      Ok(())
+    }
+  }
+}
+
+#[post("/webhook/slack")]
+async fn webhook_slack(data: web::Json<SlackRequest>) -> impl Responder {
+    info!("{:#?}", data);
+
+    match data.0 {
+        SlackRequest::UrlVerification { challenge } => {
+            HttpResponse::Ok().body(challenge)
+        }
+
+        SlackRequest::EventCallback { event } => {
+          match event {
+            SlackEvent::ReactionAdded { user, reaction, item } => {
+              if let SlackItem::Message { channel, ts } = item {
+                slack_post_message(&channel, &format!(":{}:", reaction)).await;
+              }
+
+              HttpResponse::Ok().body("")
+            }
+          }
+        }
+
+        _ => {
+            HttpResponse::BadRequest().finish()
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv::dotenv().ok();
+    std::env::set_var("RUST_LOG", "info");
+    env_logger::init();
+
     HttpServer::new(|| {
+        let json_config = web::JsonConfig::default();
+
         App::new()
+            .app_data(json_config)
+            .wrap(Logger::default())
             .service(hello)
+            .service(webhook_slack)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
