@@ -1,8 +1,9 @@
 use actix_web::{Responder, HttpResponse, App, HttpServer, get, post, middleware::Logger, web};
 use handlers::{webhook, hello};
 
-
 mod handlers;
+
+mod slack;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
