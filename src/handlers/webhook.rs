@@ -4,7 +4,7 @@ use actix_web::{Responder, HttpResponse, post, web};
 use log::{info, error};
 use serde::Deserialize;
 
-use crate::slack::{SlackRequest, SlackEvent, SlackItem, post_message};
+use crate::slack::{SlackRequest, SlackEvent, SlackItem, SlackMessage, self};
 
 #[post("/webhook/slack/events")]
 pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Result<impl Responder> {
@@ -19,7 +19,12 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Re
           match event {
             SlackEvent::ReactionAdded { user, reaction, item } => {
               if let SlackItem::Message { channel, ts } = item {
-                post_message(&channel, &format!(":{}:", reaction)).await
+                let messages = slack::get_messages(&channel, &ts, 1).await
+                  .map_err(|_| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
+
+                let message = &messages[0];
+
+                slack::post_message(&channel, &format!(":{}: {}", reaction, message.text)).await
                   .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
               }
 
