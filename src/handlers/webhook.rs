@@ -20,19 +20,25 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Re
           match event {
             SlackEvent::ReactionAdded { user, reaction, item } => {
               if let SlackItem::Message { channel, ts } = item {
-                let messages = slack::get_messages(&channel, &ts, 1).await
+                let messages = slack::get_messages(&channel, &ts, 3).await
                   .map_err(|_| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
-
-                let message = &messages[0];
-                let (author, message_author) = try_join!(
-                  slack::get_user_info(&user),
-                  slack::get_user_info(&message.user),
-                ).map_err(|e| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
 
                 let permalink = slack::get_permalink(&channel, &ts).await.unwrap_or("".to_string());
 
-                slack::post_message(&channel, &format!("{}: :{}:\n{}: {}\n{}", author.name, reaction, message_author.name, message.text, permalink)).await
-                  .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+                let mut text = String::new();
+                for message in &messages {
+                  let (author, message_author) = try_join!(
+                    slack::get_user_info(&user),
+                    slack::get_user_info(&message.user),
+                  ).map_err(|e| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
+
+                  text.push_str(format!("{}: {}\n", message_author.name, message.text).as_str());
+                  // slack::post_message(&channel, &format!("{}: :{}:\n{}: {}\n{}", author.name, reaction, message_author.name, message.text, permalink)).await
+                  //   .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+                }
+                info!("{}", text);
+
+
               }
 
               Ok(HttpResponse::Ok().body(""))
