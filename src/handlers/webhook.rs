@@ -1,6 +1,7 @@
 use std::{env, collections::HashMap};
 
 use actix_web::{Responder, HttpResponse, post, web};
+use futures::try_join;
 use log::{info, error};
 use serde::Deserialize;
 
@@ -23,11 +24,10 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Re
                   .map_err(|_| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
 
                 let message = &messages[0];
-                let author = slack::get_user_info(&user)
-                  .await.map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
-
-                let message_author = slack::get_user_info(&message.user)
-                  .await.map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+                let (author, message_author) = try_join!(
+                  slack::get_user_info(&user),
+                  slack::get_user_info(&message.user),
+                ).map_err(|e| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
 
                 let permalink = slack::get_permalink(&channel, &ts).await.unwrap_or("".to_string());
 
