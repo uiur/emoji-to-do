@@ -23,8 +23,13 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Re
                   .map_err(|_| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
 
                 let message = &messages[0];
+                let author = slack::get_user_info(&user)
+                  .await.map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
-                slack::post_message(&channel, &format!(":{}: {}", reaction, message.text)).await
+                let message_author = slack::get_user_info(&message.user)
+                  .await.map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+
+                slack::post_message(&channel, &format!("{}: :{}:\n{}: {}", author.name, reaction, message_author.name, message.text)).await
                   .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
               }
 

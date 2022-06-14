@@ -1,4 +1,4 @@
-use std::{env, collections::HashMap};
+use std::{env, collections::HashMap, fmt::Display};
 
 use actix_web::{Responder, HttpResponse, App, HttpServer, get, post, middleware::Logger, web};
 use log::{info, error};
@@ -93,5 +93,49 @@ pub async fn get_messages(channel: &str, ts: &str, count: u32) -> Result<Vec<Sla
       Err(())
     }
   }
+}
+
+#[derive(Deserialize)]
+struct UserInfoResponse {
+  ok: bool,
+  user: SlackUser,
+}
+
+#[derive(Deserialize)]
+pub struct SlackUser {
+  pub id: String,
+  pub name: String,
+}
+
+
+#[derive(Debug)]
+enum SlackClientError {
+  ApiError,
+  JsonError,
+}
+
+impl std::fmt::Display for SlackClientError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+      match *self {
+        SlackClientError::ApiError => write!(f, "api error"),
+        SlackClientError::JsonError => write!(f, "json parse error"),
+      }
+  }
+}
+
+impl std::error::Error for SlackClientError {}
+
+pub async fn get_user_info(user: &str) -> Result<SlackUser, Box<dyn std::error::Error>> {
+  let client = reqwest::Client::new();
+  let token = env::var("SLACK_TOKEN").unwrap_or_default();
+  let result = client.get("https://slack.com/api/users.info")
+    .query(&[("user", user)])
+    .bearer_auth(token)
+    .send()
+    .await.map_err(|e| SlackClientError::ApiError)?
+    .json::<UserInfoResponse>()
+    .await.map_err(|e| SlackClientError::JsonError)?;
+
+  Ok(result.user)
 }
 
