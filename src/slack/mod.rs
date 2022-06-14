@@ -139,3 +139,23 @@ pub async fn get_user_info(user: &str) -> Result<SlackUser, Box<dyn std::error::
   Ok(result.user)
 }
 
+
+#[derive(Deserialize)]
+struct GetPermalinkResponse {
+  permalink: String,
+}
+
+pub async fn get_permalink(channel: &str, ts: &str) -> Result<String, Box<dyn std::error::Error>> {
+  let client = reqwest::Client::new();
+  let token = env::var("SLACK_TOKEN").unwrap_or_default();
+  let data = client.get("https://slack.com/api/chat.getPermalink")
+    .query(&[("channel", channel), ("message_ts", ts)])
+    .bearer_auth(token)
+    .send()
+    .await.map_err(|e| SlackClientError::ApiError)?
+    .json::<GetPermalinkResponse>()
+    .await.map_err(|e| SlackClientError::JsonError)?;
+
+  Ok(data.permalink)
+}
+
