@@ -1,7 +1,7 @@
 use std::{env, collections::HashMap};
 
 use actix_web::{Responder, HttpResponse, post, web};
-use futures::try_join;
+use futures::{try_join, future::try_join_all, TryFutureExt};
 use log::{info, error};
 use serde::Deserialize;
 
@@ -25,18 +25,24 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Re
 
                 let permalink = slack::get_permalink(&channel, &ts).await.unwrap_or("".to_string());
 
-                let mut text = String::new();
-                for message in &messages {
-                  let (author, message_author) = try_join!(
-                    slack::get_user_info(&user),
-                    slack::get_user_info(&message.user),
-                  ).map_err(|e| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
+                let users = try_join_all(
+                  messages.iter()
+                    .map(|message| slack::get_user_info(&message.user))
+                ).await?;
 
-                  text.push_str(format!("{}: {}\n", message_author.name, message.text).as_str());
+                let text = messages.iter().map(|message| {
+                  let empty_username = "";
+                  let username = users.iter().find(|user| user.id == message.user).map(|user| user.name.as_str()).unwrap_or(empty_username);
+                  format!("{}: {}", username, message.text)
+                }).collect::<Vec<String>>().join("\n");
+
+                info!("{}\n{}", text, permalink)
+
+                //   text.push_str(format!("{}: {}\n", message_author.name, message.text).as_str());
                   // slack::post_message(&channel, &format!("{}: :{}:\n{}: {}\n{}", author.name, reaction, message_author.name, message.text, permalink)).await
                   //   .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
-                }
-                info!("{}", text);
+                // }
+                // info!("{}", text);
 
 
               }
