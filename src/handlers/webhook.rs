@@ -26,6 +26,11 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest
         SlackRequest::EventCallback { event } => {
           match event {
             SlackEvent::ReactionAdded { user, reaction, item } => {
+              let reactions = vec![String::from("memo")];
+              if !reactions.contains(&reaction) {
+                return Ok(HttpResponse::Ok().into());
+              }
+
               if let SlackItem::Message { channel, ts } = item {
                 let messages = slack::get_messages(&channel, &ts, 3).await
                   .map_err(|_| actix_web::error::ErrorInternalServerError("failed to fetch slack messages"))?;
@@ -48,11 +53,11 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest
                 info!("{}\n{}", text, permalink);
                 let title: String = messages.first().and_then(|m| Some(String::from(&m.text))).unwrap_or_default();
 
-                let repo = String::from("uiur/private-sandbox");
+                let repo = env::var("GITHUB_REPO").unwrap_or_default();
                 let body = format!("```\n{}\n```\n{}", text, permalink);
                 let issue = github::create_issue(&repo, &title, &body).await?;
 
-                slack::post_message(&channel, &format!("{} {}", reactioner.name, issue.html_url)).await
+                slack::post_message(&channel, &format!("<@{}> {}", reactioner.name, issue.html_url)).await
                   .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
 
 
