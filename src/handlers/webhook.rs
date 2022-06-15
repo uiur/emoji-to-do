@@ -5,7 +5,7 @@ use futures::{try_join, future::try_join_all, TryFutureExt};
 use log::{info, error};
 use serde::Deserialize;
 
-use crate::slack::{SlackRequest, SlackEvent, SlackItem, SlackMessage, self};
+use crate::{slack::{SlackRequest, SlackEvent, SlackItem, SlackMessage, self}, github};
 
 #[post("/webhook/slack/events")]
 pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Result<impl Responder> {
@@ -30,19 +30,23 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Re
                     .map(|message| slack::get_user_info(&message.user))
                 ).await?;
 
+                let reactioner = slack::get_user_info(&user).await?;
+
                 let text = messages.iter().map(|message| {
                   let empty_username = "";
                   let username = users.iter().find(|user| user.id == message.user).map(|user| user.name.as_str()).unwrap_or(empty_username);
                   format!("{}: {}", username, message.text)
                 }).collect::<Vec<String>>().join("\n");
 
-                info!("{}\n{}", text, permalink)
+                info!("{}\n{}", text, permalink);
+                let title: String = messages.first().and_then(|m| Some(String::from(&m.text))).unwrap_or_default();
 
-                //   text.push_str(format!("{}: {}\n", message_author.name, message.text).as_str());
-                  // slack::post_message(&channel, &format!("{}: :{}:\n{}: {}\n{}", author.name, reaction, message_author.name, message.text, permalink)).await
-                  //   .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
-                // }
-                // info!("{}", text);
+                let repo = String::from("uiur/private-sandbox");
+                let body = format!("```\n{}\n```\n{}", text, permalink);
+                let issue = github::create_issue(&repo, &title, &body).await?;
+
+                slack::post_message(&channel, &format!("{} {}", reactioner.name, issue.html_url)).await
+                  .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
 
 
               }
