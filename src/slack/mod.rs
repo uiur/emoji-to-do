@@ -105,6 +105,7 @@ struct UserInfoResponse {
 pub struct SlackUser {
   pub id: String,
   pub name: String,
+  pub team_id: String,
 }
 
 

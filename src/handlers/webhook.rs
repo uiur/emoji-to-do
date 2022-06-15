@@ -7,6 +7,12 @@ use serde::Deserialize;
 
 use crate::{slack::{SlackRequest, SlackEvent, SlackItem, SlackMessage, self}, github};
 
+struct TeamConfig {
+  team_id: String,
+  repo: String,
+  reaction_names: Vec<String>,
+}
+
 #[post("/webhook/slack/events")]
 pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest) -> actix_web::Result<impl Responder> {
     // Ignore duplicated requests due to http timeout
@@ -17,6 +23,15 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest
     }
 
     info!("{:#?}", data);
+    let mut config_map = HashMap::new();
+    config_map.insert(
+      "T1NRWJ5QT".to_string(),
+      TeamConfig {
+        team_id: "T1NRWJ5QT".to_string(),
+        repo: env::var("GITHUB_REPO").unwrap_or_default(),
+        reaction_names: vec![String::from("memo")],
+      }
+    );
 
     match data.0 {
         SlackRequest::UrlVerification { challenge } => {
@@ -26,8 +41,12 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest
         SlackRequest::EventCallback { event } => {
           match event {
             SlackEvent::ReactionAdded { user, reaction, item } => {
-              let reactions = vec![String::from("memo")];
-              if !reactions.contains(&reaction) {
+              let reactioner = slack::get_user_info(&user).await?;
+
+              let team_id = reactioner.team_id;
+              let config = config_map.get(&team_id).unwrap();
+
+              if !config.reaction_names.contains(&reaction) {
                 return Ok(HttpResponse::Ok().into());
               }
 
@@ -42,7 +61,6 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest
                     .map(|message| slack::get_user_info(&message.user))
                 ).await?;
 
-                let reactioner = slack::get_user_info(&user).await?;
 
                 let text = messages.iter().map(|message| {
                   let empty_username = "";
@@ -53,14 +71,11 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest
                 info!("{}\n{}", text, permalink);
                 let title: String = messages.first().and_then(|m| Some(String::from(&m.text))).unwrap_or_default();
 
-                let repo = env::var("GITHUB_REPO").unwrap_or_default();
                 let body = format!("```\n{}\n```\n{}", text, permalink);
-                let issue = github::create_issue(&repo, &title, &body).await?;
+                let issue = github::create_issue(&config.repo, &title, &body).await?;
 
                 slack::post_message(&channel, &format!("<@{}> {}", reactioner.name, issue.html_url)).await
                   .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
-
-
               }
 
               Ok(HttpResponse::Ok().body(""))
