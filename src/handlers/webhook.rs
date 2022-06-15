@@ -10,7 +10,12 @@ use crate::{slack::{SlackRequest, SlackEvent, SlackItem, SlackMessage, self}, gi
 struct TeamConfig {
   team_id: String,
   repo: String,
-  reaction_names: Vec<String>,
+  reaction_patterns: Vec<ReactionPattern>,
+}
+
+struct ReactionPattern {
+  name: String,
+  assignees: Vec<String>,
 }
 
 #[post("/webhook/slack/events")]
@@ -28,8 +33,10 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest
       "T1NRWJ5QT".to_string(),
       TeamConfig {
         team_id: "T1NRWJ5QT".to_string(),
-        repo: env::var("GITHUB_REPO").unwrap_or_default(),
-        reaction_names: vec![String::from("memo")],
+        repo: "uiur/private-sandbox".to_string(),
+        reaction_patterns: vec![
+          ReactionPattern { name: String::from("memo"), assignees: vec![] }
+        ],
       }
     );
 
@@ -46,7 +53,7 @@ pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest
               let team_id = reactioner.team_id;
               let config = config_map.get(&team_id).unwrap();
 
-              if !config.reaction_names.contains(&reaction) {
+              if !config.reaction_patterns.iter().any(|p| p.name == reaction) {
                 return Ok(HttpResponse::Ok().into());
               }
 
