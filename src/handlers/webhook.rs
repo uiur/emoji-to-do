@@ -1,6 +1,6 @@
 use std::{env, collections::HashMap};
 
-use actix_web::{Responder, HttpResponse, post, web};
+use actix_web::{Responder, HttpResponse, post, web, HttpRequest};
 use futures::{try_join, future::try_join_all, TryFutureExt};
 use log::{info, error};
 use serde::Deserialize;
@@ -8,7 +8,14 @@ use serde::Deserialize;
 use crate::{slack::{SlackRequest, SlackEvent, SlackItem, SlackMessage, self}, github};
 
 #[post("/webhook/slack/events")]
-pub async fn create_slack_events(data: web::Json<SlackRequest>) -> actix_web::Result<impl Responder> {
+pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest) -> actix_web::Result<impl Responder> {
+    // Ignore duplicated requests due to http timeout
+    if let Some(header_value) = req.headers().get("X-Slack-Retry-Reason") {
+      if header_value.to_str().unwrap_or_default() == "http_timeout" {
+        return Ok(HttpResponse::Ok().body(""))
+      }
+    }
+
     info!("{:#?}", data);
 
     match data.0 {

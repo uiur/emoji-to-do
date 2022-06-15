@@ -28,10 +28,8 @@ impl std::error::Error for GithubClientError {}
 
 pub async fn create_issue(repo: &str, title: &str, body: &str) -> Result<Issue, Box<dyn std::error::Error>> {
   let token = env::var("GITHUB_TOKEN").unwrap_or_default();
-  let repo = "uiur/private-sandbox".to_string();
 
   let client = reqwest::Client::new();
-
 
   let mut params = HashMap::new();
   params.insert("title", title);
