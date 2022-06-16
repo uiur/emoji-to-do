@@ -3,7 +3,7 @@ use futures::{try_join, future::try_join_all, TryFutureExt};
 use log::{info, error};
 use serde::Deserialize;
 
-use crate::{slack::{SlackRequest, SlackEvent, SlackItem, SlackMessage, self}, github, models::TeamConfigMap, AppState};
+use crate::{slack::{SlackRequest, SlackEvent, SlackItem, SlackMessage, self}, github, models::TeamConfigMap};
 
 #[post("/webhook/slack/events")]
 pub async fn create_slack_events(data: web::Json<SlackRequest>, req: HttpRequest, team_config_map: web::Data<TeamConfigMap>) -> actix_web::Result<impl Responder> {
