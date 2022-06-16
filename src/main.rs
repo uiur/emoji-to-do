@@ -1,13 +1,13 @@
 #![feature(assert_matches)]
 
-use actix_web::{Responder, HttpResponse, App, HttpServer, get, post, middleware::Logger, web};
-use handlers::{webhook, hello};
+use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
+use handlers::{hello, webhook};
 use models::TeamConfigMap;
 
+mod github;
 mod handlers;
 mod models;
 mod slack;
-mod github;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
