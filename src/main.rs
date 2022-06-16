@@ -1,3 +1,5 @@
+#![feature(assert_matches)]
+
 use actix_web::{Responder, HttpResponse, App, HttpServer, get, post, middleware::Logger, web};
 use handlers::{webhook, hello};
 use models::TeamConfigMap;

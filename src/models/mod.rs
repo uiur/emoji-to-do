@@ -6,7 +6,7 @@ pub struct TeamConfig {
   pub reaction_patterns: Vec<ReactionPattern>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ReactionPattern {
   pub name: String,
   pub repo: String,
@@ -45,5 +45,32 @@ impl TeamConfigMap {
           return None;
         },
     }
+  }
+}
+
+
+#[cfg(test)]
+mod tests {
+  use std::assert_matches::assert_matches;
+
+  use super::TeamConfigMap;
+
+
+  #[test]
+  fn it_returns_some_if_found() {
+    let team_config_map = TeamConfigMap::new();
+    let result = team_config_map.find(
+      "T1NRWJ5QT",
+      "",
+      "memo"
+    );
+    assert_matches!(result, Some(_));
+  }
+
+  #[test]
+  fn it_returns_none_if_not_found() {
+    let team_config_map = TeamConfigMap::new();
+    let result = team_config_map.find("foo", "bar", "baz");
+    assert_matches!(result, None);
   }
 }
