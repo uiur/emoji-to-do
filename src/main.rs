@@ -1,7 +1,9 @@
 use actix_web::{Responder, HttpResponse, App, HttpServer, get, post, middleware::Logger, web};
 use handlers::{webhook, hello};
+use models::TeamConfigMap;
 
 mod handlers;
+mod models;
 mod slack;
 mod github;
 
@@ -13,8 +15,10 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         let json_config = web::JsonConfig::default();
+        let team_config_map = TeamConfigMap::new();
 
         App::new()
+            .app_data(web::Data::new(team_config_map))
             .app_data(json_config)
             .wrap(Logger::default())
             .service(hello::get_hello)
