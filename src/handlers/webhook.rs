@@ -123,12 +123,43 @@ fn remove_head_mention(text: &str) -> String {
 fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, String>) -> String {
     let text = text.replace("\n", " ");
     let text = text.replace("`", "\\`");
-    let re = Regex::new(r"<(?P<mark>[@#!])?(?P<a>.+?)>").unwrap();
+    let re = Regex::new(r"<(?P<mark>[@#!])?(?P<a>.+?)(\|(?P<b>.+?))?>").unwrap();
     re.replace_all(&text, { |caps: &Captures|
         if let Some(inner) = caps.name("a").and_then(|m| Some(m.as_str())) {
-            match slack_user_map.get(inner) {
-                Some(s) => format!("{}{}", caps.name("mark").unwrap().as_str(), s),
-                None => format!("{}", inner),
+            match caps.name("mark").and_then(|m| Some(m.as_str())).unwrap_or_default() {
+                "@" => {
+                    let content =
+                        match slack_user_map.get(inner) {
+                            Some(s) => s,
+                            None => inner,
+                        };
+
+                    format!("@{}", content)
+                },
+
+                "!" => {
+                    let content =
+                        match caps.name("b").and_then(|m| Some(m.as_str())) {
+                            Some(b) => b,
+                            None => inner,
+                        };
+
+                    format!("@{}", inner)
+                },
+
+                "#" => {
+                    let content =
+                        match caps.name("b").and_then(|m| Some(m.as_str())) {
+                            Some(b) => b,
+                            None => inner,
+                        };
+
+                    format!("#{}", content)
+                },
+
+                _ => {
+                    format!("{}{}", caps.name("mark").and_then(|m| Some(m.as_str())).unwrap_or_default(), inner)
+                }
             }
         } else {
             "".to_string()
@@ -181,6 +212,15 @@ mod tests {
         assert_eq!(text, "@uiur foo bar https://github.com/uiur/sandbox/issues/1");
 
         let text = humanize_slack_formatted_text("```\nfoo bar\n```", &slack_user_map);
-        assert_eq!(text, "\\`\\`\\` foo bar \\`\\`\\`")
+        assert_eq!(text, "\\`\\`\\` foo bar \\`\\`\\`");
+
+        let text = humanize_slack_formatted_text("<!here>", &slack_user_map);
+        assert_eq!(text, "@here");
+
+        let text = humanize_slack_formatted_text("<!subteam^SAZ94GDB8>", &slack_user_map);
+        assert_eq!(text, "@subteam^SAZ94GDB8");
+
+        let text = humanize_slack_formatted_text("<#C024BE7LR>", &slack_user_map);
+        assert_eq!(text, "#C024BE7LR");
     }
 }
