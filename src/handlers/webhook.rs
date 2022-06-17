@@ -35,9 +35,11 @@ pub async fn create_slack_events(
                 item,
             } => handle_reaction_added(user, team_config_map, reaction, item).await,
 
-            SlackEvent::AppMention { user, channel, text } => {
-              handle_app_mention(user, channel, team_config_map, text).await
-            }
+            SlackEvent::AppMention {
+                user,
+                channel,
+                text,
+            } => handle_app_mention(user, channel, team_config_map, text).await,
 
             _ => Ok(HttpResponse::Ok().body("")),
         },
@@ -109,24 +111,23 @@ fn remove_head_mention(text: &str) -> String {
     re.replace(text, "").into()
 }
 
-async fn handle_app_mention(user: String, channel: String, team_config_map: web::Data<TeamConfigMap>, text: String) -> actix_web::Result<HttpResponse>{
+async fn handle_app_mention(
+    user: String,
+    channel: String,
+    team_config_map: web::Data<TeamConfigMap>,
+    text: String,
+) -> actix_web::Result<HttpResponse> {
     let content = remove_head_mention(&text);
     match content.as_str() {
         "ping" => {
-            slack::post_message(
-                &channel,
-                &format!("pong", ),
-            )
-            .await
-            .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
-        },
+            slack::post_message(&channel, "pong")
+                .await
+                .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+        }
         _ => {
-            slack::post_message(
-                &channel,
-                &format!("```\n{}\n```", content),
-            )
-            .await
-            .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+            slack::post_message(&channel, &format!("```\n{}\n```", content))
+                .await
+                .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
         }
     }
     Ok(HttpResponse::Ok().body(""))
