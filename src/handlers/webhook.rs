@@ -1,6 +1,7 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use futures::{future::try_join_all, try_join, TryFutureExt};
 use log::{error, info};
+use regex::Regex;
 use serde::Deserialize;
 
 use crate::{
@@ -103,13 +104,41 @@ async fn handle_reaction_added(
     Ok(HttpResponse::Ok().body(""))
 }
 
-async fn handle_app_mention(user: String, channel: String, team_config_map: web::Data<TeamConfigMap>, text: String) -> actix_web::Result<HttpResponse>{
-  slack::post_message(
-    &channel,
-    &format!("```\n{}\n```", text),
-  )
-  .await
-  .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+fn remove_head_mention(text: &str) -> String {
+    let re = Regex::new(r"^<@[0-9A-Z]+>\s*").unwrap();
+    re.replace(text, "").into()
+}
 
-  Ok(HttpResponse::Ok().body(""))
+async fn handle_app_mention(user: String, channel: String, team_config_map: web::Data<TeamConfigMap>, text: String) -> actix_web::Result<HttpResponse>{
+    let content = remove_head_mention(&text);
+    match content.as_str() {
+        "ping" => {
+            slack::post_message(
+                &channel,
+                &format!("pong", ),
+            )
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+        },
+        _ => {
+            slack::post_message(
+                &channel,
+                &format!("```\n{}\n```", content),
+            )
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+        }
+    }
+    Ok(HttpResponse::Ok().body(""))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::remove_head_mention;
+
+    #[test]
+    fn test_remove_head_mention() {
+        let text = remove_head_mention("<@U1234> ping");
+        assert_eq!(text, "ping")
+    }
 }
