@@ -47,7 +47,7 @@ pub async fn create_issue(
         .await
         .map_err(|e| GithubClientError::ApiError)?;
 
-    log::info!("{:#?}", resp);
+    log::debug!("{:#?}", resp);
     if !resp.status().is_success() {
         log::error!("{:#?}", resp.text().await?);
         return Err(GithubClientError::ApiError.into());

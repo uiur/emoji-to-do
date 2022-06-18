@@ -25,7 +25,7 @@ pub async fn create_slack_events(
         }
     }
 
-    info!("{:#?}", data);
+    log::debug!("{:#?}", data);
 
     match data.0 {
         SlackRequest::UrlVerification { challenge } => Ok(HttpResponse::Ok().body(challenge)),
@@ -94,7 +94,6 @@ async fn handle_reaction_added(
             .collect::<Vec<String>>()
             .join("\n");
 
-        info!("{}\n{}", text, permalink);
         let title: String = messages
             .first()
             .and_then(|m| Some(String::from(&m.text)))
