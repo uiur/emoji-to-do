@@ -3,6 +3,7 @@ create table if not exists reactions (
   id integer primary key not null,
   name text not null,
   team_id integer not null,
+  repo text not null,
   created_at text not null default (datetime('now', 'utc')),
   foreign key(team_id) references teams(id) on delete cascade
 );

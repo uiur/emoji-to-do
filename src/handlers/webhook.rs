@@ -1,14 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, option};
 
-use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{post, web, HttpRequest, HttpResponse, Responder, error::ErrorNotFound};
 use futures::{future::try_join_all, try_join, TryFutureExt};
 use log::{error, info};
 use regex::{Regex, Captures};
 use serde::Deserialize;
+use sqlx::SqlitePool;
 
 use crate::{
     github,
-    models::TeamConfigMap,
+    models::{TeamConfigMap, team::Team, reaction::Reaction},
     slack::{self, SlackEvent, SlackItem, SlackMessage, SlackRequest},
 };
 
@@ -16,7 +17,7 @@ use crate::{
 pub async fn create_slack_events(
     data: web::Json<SlackRequest>,
     req: HttpRequest,
-    team_config_map: web::Data<TeamConfigMap>,
+    connection: web::Data<SqlitePool>,
 ) -> actix_web::Result<impl Responder> {
     // Ignore duplicated requests due to http timeout
     if let Some(header_value) = req.headers().get("X-Slack-Retry-Reason") {
@@ -35,13 +36,13 @@ pub async fn create_slack_events(
                 user,
                 reaction,
                 item,
-            } => handle_reaction_added(user, team_config_map, reaction, item).await,
+            } => handle_reaction_added(user, reaction, item, connection).await,
 
             SlackEvent::AppMention {
                 user,
                 channel,
                 text,
-            } => handle_app_mention(user, channel, team_config_map, text).await,
+            } => handle_app_mention(user, channel, text).await,
 
             _ => Ok(HttpResponse::Ok().body("")),
         },
@@ -52,64 +53,74 @@ pub async fn create_slack_events(
 
 async fn handle_reaction_added(
     user: String,
-    team_config_map: web::Data<TeamConfigMap>,
     reaction: String,
     item: SlackItem,
+    connection: web::Data<SqlitePool>,
 ) -> actix_web::Result<HttpResponse> {
     let reactioner = slack::get_user_info(&user).await?;
     let team_id = reactioner.team_id;
-    let pattern = team_config_map.find(&team_id, "", &reaction).unwrap();
-    if let SlackItem::Message { channel, ts } = item {
-        let messages = slack::get_messages(&channel, &ts, 3).await.map_err(|_| {
-            actix_web::error::ErrorInternalServerError("failed to fetch slack messages")
-        })?;
 
-        let permalink = slack::get_permalink(&channel, &ts)
-            .await
-            .unwrap_or("".to_string());
+    let team = Team::find(connection.as_ref(), &team_id).await
+        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?
+        .ok_or(actix_web::error::ErrorNotFound("team is not found"))?;
 
-        let users = try_join_all(
-            messages
-                .iter()
-                .map(|message| slack::get_user_info(&message.user)),
-        )
-        .await?;
+    let record = Reaction::find_by_team_id_and_name(&connection, team.id, &reaction).await
+        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
 
-        let mut slack_user_map = HashMap::new();
-        for user in &users {
-            slack_user_map.insert(user.id.clone(), user.name.clone());
-        }
+    if let Some(reaction_record) = record {
+        log::info!("{:#?}", reaction_record);
+        if let SlackItem::Message { channel, ts } = item {
+            let messages = slack::get_messages(&channel, &ts, 3).await.map_err(|_| {
+                actix_web::error::ErrorInternalServerError("failed to fetch slack messages")
+            })?;
 
-        let text = messages
-            .iter()
-            .map(|message| {
-                let empty_username = "";
-                let username = users
+            let permalink = slack::get_permalink(&channel, &ts)
+                .await
+                .unwrap_or("".to_string());
+
+            let users = try_join_all(
+                messages
                     .iter()
-                    .find(|user| user.id == message.user)
-                    .map(|user| user.name.as_str())
-                    .unwrap_or(empty_username);
-                format!("{}: {}", username, humanize_slack_formatted_text(&message.text, &slack_user_map))
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
+                    .map(|message| slack::get_user_info(&message.user)),
+            )
+            .await?;
 
-        let title: String = messages
-            .first()
-            .and_then(|m| Some(String::from(&m.text)))
-            .unwrap_or_default();
+            let mut slack_user_map = HashMap::new();
+            for user in &users {
+                slack_user_map.insert(user.id.clone(), user.name.clone());
+            }
 
-        let title = humanize_slack_formatted_text(&title, &slack_user_map);
+            let text = messages
+                .iter()
+                .map(|message| {
+                    let empty_username = "";
+                    let username = users
+                        .iter()
+                        .find(|user| user.id == message.user)
+                        .map(|user| user.name.as_str())
+                        .unwrap_or(empty_username);
+                    format!("{}: {}", username, humanize_slack_formatted_text(&message.text, &slack_user_map))
+                })
+                .collect::<Vec<String>>()
+                .join("\n");
 
-        let body = format!("```\n{}\n```\n{}", &text, permalink);
-        let issue = github::create_issue(&pattern.repo, &title, &body).await?;
+            let title: String = messages
+                .first()
+                .and_then(|m| Some(String::from(&m.text)))
+                .unwrap_or_default();
 
-        slack::post_message(
-            &channel,
-            &format!("<@{}> {}", reactioner.name, issue.html_url),
-        )
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+            let title = humanize_slack_formatted_text(&title, &slack_user_map);
+
+            let body = format!("```\n{}\n```\n{}", &text, permalink);
+            let issue = github::create_issue(&reaction_record.repo, &title, &body).await?;
+
+            slack::post_message(
+                &channel,
+                &format!("<@{}> {}", reactioner.name, issue.html_url),
+            )
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
+        }
     }
     Ok(HttpResponse::Ok().body(""))
 }
@@ -169,7 +180,6 @@ fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, St
 async fn handle_app_mention(
     user: String,
     channel: String,
-    team_config_map: web::Data<TeamConfigMap>,
     text: String,
 ) -> actix_web::Result<HttpResponse> {
     let content = remove_head_mention(&text);
