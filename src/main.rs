@@ -1,6 +1,8 @@
 #![feature(assert_matches)]
+use std::net::TcpListener;
 
 use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
+use emoji_to_do::run;
 use handlers::{hello, webhook};
 use models::TeamConfigMap;
 use sqlx::sqlite::SqlitePoolOptions;
@@ -21,20 +23,6 @@ async fn main() -> std::io::Result<()> {
         .connect(&database_url)
         .await.expect("failed to open database");
 
-    let connection = web::Data::new(pool);
-    HttpServer::new(move || {
-        let json_config = web::JsonConfig::default();
-        let team_config_map = TeamConfigMap::new();
-
-        App::new()
-            .app_data(web::Data::new(team_config_map))
-            .app_data(json_config)
-            .app_data(connection.clone())
-            .wrap(Logger::default())
-            .service(hello::get_hello)
-            .service(webhook::create_slack_events)
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+    let listener = TcpListener::bind("127.0.0.1:8080").expect("failed to bind");
+    run(listener, pool)?.await
 }
