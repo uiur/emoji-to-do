@@ -3,23 +3,6 @@ use std::net::TcpListener;
 
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 
-#[actix_rt::test]
-async fn health_check_works() {
-    let host = spawn_app().await;
-    println!("{}", host)
-
-    // let client = reqwest::Client::new();
-    // let response = client
-    //     .get(format!("{}/health_check", host))
-    //     .send()
-    //     .await
-    //     .expect("failed to execute request");
-
-    // assert!(response.status().is_success());
-    // let text = response.text().await.unwrap();
-    // println!("{}", text);
-}
-
 async fn setup_db() -> SqlitePool {
   let connection = SqlitePoolOptions::new()
     .max_connections(1)
@@ -34,7 +17,7 @@ async fn setup_db() -> SqlitePool {
   connection
 }
 
-async fn spawn_app() -> String {
+pub async fn spawn_app() -> String {
   let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind");
   let port = listener.local_addr().unwrap().port();
 
