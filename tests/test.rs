@@ -1,4 +1,3 @@
-#![feature(assert_matches)]
 use std::net::TcpListener;
 
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
