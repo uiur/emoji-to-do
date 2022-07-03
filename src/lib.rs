@@ -22,8 +22,8 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
           .app_data(json_config)
           .app_data(connection.clone())
           .wrap(Logger::default())
-          .service(hello::get_hello)
-          .service(webhook::create_slack_events)
+          .route("/hello", web::get().to(hello::get_hello))
+          .route("/webhook/slack/events", web::post().to(webhook::create_slack_events))
   })
   .listen(listener)?
   .run();

@@ -13,7 +13,6 @@ use crate::{
     slack::{self, SlackEvent, SlackItem, SlackMessage, SlackRequest},
 };
 
-#[post("/webhook/slack/events")]
 pub async fn create_slack_events(
     data: web::Json<SlackRequest>,
     req: HttpRequest,
