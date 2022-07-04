@@ -1,15 +1,15 @@
 use std::{collections::HashMap, option};
 
-use actix_web::{post, web, HttpRequest, HttpResponse, Responder, error::ErrorNotFound};
+use actix_web::{error::ErrorNotFound, post, web, HttpRequest, HttpResponse, Responder};
 use futures::{future::try_join_all, try_join, TryFutureExt};
 use log::{error, info};
-use regex::{Regex, Captures};
+use regex::{Captures, Regex};
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
 use crate::{
     github,
-    models::{TeamConfigMap, team::Team, reaction::Reaction},
+    models::{reaction::Reaction, team::Team, TeamConfigMap},
     slack::{self, SlackEvent, SlackItem, SlackMessage, SlackRequest},
 };
 
@@ -59,11 +59,13 @@ async fn handle_reaction_added(
     let reactioner = slack::get_user_info(&user).await?;
     let team_id = reactioner.team_id;
 
-    let team = Team::find(connection.as_ref(), &team_id).await
+    let team = Team::find(connection.as_ref(), &team_id)
+        .await
         .map_err(|err| actix_web::error::ErrorInternalServerError(err))?
         .ok_or(actix_web::error::ErrorNotFound("team is not found"))?;
 
-    let record = Reaction::find_by_team_id_and_name(&connection, team.id, &reaction).await
+    let record = Reaction::find_by_team_id_and_name(&connection, team.id, &reaction)
+        .await
         .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
 
     if let Some(reaction_record) = record {
@@ -98,7 +100,11 @@ async fn handle_reaction_added(
                         .find(|user| user.id == message.user)
                         .map(|user| user.name.as_str())
                         .unwrap_or(empty_username);
-                    format!("{}: {}", username, humanize_slack_formatted_text(&message.text, &slack_user_map))
+                    format!(
+                        "{}: {}",
+                        username,
+                        humanize_slack_formatted_text(&message.text, &slack_user_map)
+                    )
                 })
                 .collect::<Vec<String>>()
                 .join("\n");
@@ -133,47 +139,57 @@ fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, St
     let text = text.replace("\n", " ");
     let text = text.replace("`", "\\`");
     let re = Regex::new(r"<(?P<mark>[@#!])?(?P<a>.+?)(\|(?P<b>.+?))?>").unwrap();
-    re.replace_all(&text, { |caps: &Captures|
-        if let Some(inner) = caps.name("a").and_then(|m| Some(m.as_str())) {
-            match caps.name("mark").and_then(|m| Some(m.as_str())).unwrap_or_default() {
-                "@" => {
-                    let content =
-                        match slack_user_map.get(inner) {
+    re.replace_all(&text, {
+        |caps: &Captures| {
+            if let Some(inner) = caps.name("a").and_then(|m| Some(m.as_str())) {
+                match caps
+                    .name("mark")
+                    .and_then(|m| Some(m.as_str()))
+                    .unwrap_or_default()
+                {
+                    "@" => {
+                        let content = match slack_user_map.get(inner) {
                             Some(s) => s,
                             None => inner,
                         };
 
-                    format!("@{}", content)
-                },
+                        format!("@{}", content)
+                    }
 
-                "!" => {
-                    let content =
-                        match caps.name("b").and_then(|m| Some(m.as_str())) {
+                    "!" => {
+                        let content = match caps.name("b").and_then(|m| Some(m.as_str())) {
                             Some(b) => b,
                             None => inner,
                         };
 
-                    format!("@{}", inner)
-                },
+                        format!("@{}", inner)
+                    }
 
-                "#" => {
-                    let content =
-                        match caps.name("b").and_then(|m| Some(m.as_str())) {
+                    "#" => {
+                        let content = match caps.name("b").and_then(|m| Some(m.as_str())) {
                             Some(b) => b,
                             None => inner,
                         };
 
-                    format!("#{}", content)
-                },
+                        format!("#{}", content)
+                    }
 
-                _ => {
-                    format!("{}{}", caps.name("mark").and_then(|m| Some(m.as_str())).unwrap_or_default(), inner)
+                    _ => {
+                        format!(
+                            "{}{}",
+                            caps.name("mark")
+                                .and_then(|m| Some(m.as_str()))
+                                .unwrap_or_default(),
+                            inner
+                        )
+                    }
                 }
+            } else {
+                "".to_string()
             }
-        } else {
-            "".to_string()
         }
-    }).into()
+    })
+    .into()
 }
 
 async fn handle_app_mention(
@@ -203,7 +219,7 @@ mod tests {
 
     use crate::slack;
 
-    use super::{remove_head_mention, humanize_slack_formatted_text};
+    use super::{humanize_slack_formatted_text, remove_head_mention};
 
     #[test]
     fn test_remove_head_mention() {
@@ -216,8 +232,14 @@ mod tests {
         let mut slack_user_map = HashMap::new();
         slack_user_map.insert("U1234".to_string(), "uiur".to_string());
 
-        let text = humanize_slack_formatted_text("<@U1234> foo bar <https://github.com/uiur/sandbox/issues/1>", &slack_user_map);
-        assert_eq!(text, "@uiur foo bar https://github.com/uiur/sandbox/issues/1");
+        let text = humanize_slack_formatted_text(
+            "<@U1234> foo bar <https://github.com/uiur/sandbox/issues/1>",
+            &slack_user_map,
+        );
+        assert_eq!(
+            text,
+            "@uiur foo bar https://github.com/uiur/sandbox/issues/1"
+        );
 
         let text = humanize_slack_formatted_text("```\nfoo bar\n```", &slack_user_map);
         assert_eq!(text, "\\`\\`\\` foo bar \\`\\`\\`");

@@ -1,4 +1,4 @@
-use actix_web::{get, HttpResponse, Responder, web};
+use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::{Pool, SqlitePool};
 
 pub async fn get_hello(connection: web::Data<SqlitePool>) -> impl Responder {

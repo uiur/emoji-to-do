@@ -21,7 +21,8 @@ async fn main() -> std::io::Result<()> {
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect(&database_url)
-        .await.expect("failed to open database");
+        .await
+        .expect("failed to open database");
 
     let listener = TcpListener::bind("127.0.0.1:8080").expect("failed to bind");
     run(listener, pool)?.await

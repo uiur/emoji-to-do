@@ -1,7 +1,7 @@
 use std::{collections::HashMap, env};
 
-pub mod team;
 pub mod reaction;
+pub mod team;
 
 pub struct TeamConfig {
     pub team_id: String,
