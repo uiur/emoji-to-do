@@ -2,18 +2,45 @@ use std::env;
 
 use actix_web::{get, web::{self, Query}, HttpResponse, Responder};
 use oauth2::{
-    basic::BasicClient, AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenUrl, AuthorizationCode, TokenResponse,
+    basic::BasicClient, AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenUrl, AuthorizationCode, TokenResponse, ExtraTokenFields,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{Pool, SqlitePool};
 
+type OauthClient = oauth2::Client<
+    oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,
+    oauth2::StandardTokenResponse<ExtraFields, oauth2::basic::BasicTokenType>,
+    oauth2::basic::BasicTokenType,
+    oauth2::StandardTokenIntrospectionResponse<oauth2::EmptyExtraTokenFields, oauth2::basic::BasicTokenType>,
+    oauth2::StandardRevocableToken,
+    oauth2::StandardErrorResponse<oauth2::RevocationErrorResponseType>
+>;
 
-fn create_oauth_client() -> oauth2::Client<oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>, oauth2::StandardTokenResponse<oauth2::EmptyExtraTokenFields, oauth2::basic::BasicTokenType>, oauth2::basic::BasicTokenType, oauth2::StandardTokenIntrospectionResponse<oauth2::EmptyExtraTokenFields, oauth2::basic::BasicTokenType>, oauth2::StandardRevocableToken, oauth2::StandardErrorResponse<oauth2::RevocationErrorResponseType>> {
+#[derive(Deserialize, Debug, Serialize)]
+struct ExtraFields {
+    team: TeamFields,
+    authed_user: AuthedUserFields,
+}
+
+impl oauth2::ExtraTokenFields for ExtraFields {}
+
+#[derive(Deserialize, Debug, Serialize)]
+struct TeamFields {
+    id: String,
+    name: String,
+}
+
+#[derive(Deserialize, Debug, Serialize)]
+struct AuthedUserFields {
+    id: String
+}
+
+fn create_oauth_client() -> OauthClient {
     let client_id = env::var("SLACK_CLIENT_ID").unwrap();
     let client_secret = env::var("SLACK_CLIENT_SECRET").unwrap();
     let http_host = env::var("E2D_HTTP_HOST").unwrap();
 
-    let client = BasicClient::new(
+    let client = OauthClient::new(
         ClientId::new(client_id.clone().to_string()),
         Some(ClientSecret::new(client_secret.clone().to_string())),
         AuthUrl::new("https://slack.com/oauth/v2/authorize".to_string()).unwrap(),
@@ -55,6 +82,8 @@ pub async fn slack_auth_callback(query: Query<CallbackQuery>) -> actix_web::Resu
         .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
 
+    println!("{:?}", token_result.extra_fields());
+    let extra_fields = token_result.extra_fields();
     let token = token_result.access_token();
-    Ok(HttpResponse::Ok().body(token.secret().to_string()))
+    Ok(HttpResponse::Ok().body(extra_fields.authed_user.id.clone()))
 }
