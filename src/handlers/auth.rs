@@ -8,6 +8,8 @@ use oauth2::{
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, SqlitePool};
 
+use crate::{models::user::User, slack};
+
 type OauthClient = oauth2::Client<
     oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,
     oauth2::StandardTokenResponse<ExtraFields, oauth2::basic::BasicTokenType>,
@@ -72,7 +74,7 @@ pub struct CallbackQuery {
     code: String
 }
 
-pub async fn slack_auth_callback(query: Query<CallbackQuery>, session: Session) -> actix_web::Result<impl Responder> {
+pub async fn slack_auth_callback(connection: web::Data<SqlitePool>, query: Query<CallbackQuery>, session: Session) -> actix_web::Result<impl Responder> {
     let client = create_oauth_client();
     log::info!("{}", &query.code);
 
@@ -87,8 +89,24 @@ pub async fn slack_auth_callback(query: Query<CallbackQuery>, session: Session) 
     let extra_fields = token_result.extra_fields();
     let token = token_result.access_token();
 
-    session.insert("user_id", 1234);
+    let slack_team_id = extra_fields.team.id.clone();
     let slack_user_id = extra_fields.authed_user.id.clone();
+
+    let option_user = User::find_by_slack_user_id(&connection, &slack_user_id).await
+        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
+
+    match option_user {
+        Some(found_user) => {
+            session.insert("user_id", found_user.id);
+        },
+        None => {
+            let user_id = User::create(&connection, &slack_team_id, &slack_user_id, &token.secret()).await
+                .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
+
+            session.insert("user_id", user_id);
+        },
+    }
+
 
     Ok(HttpResponse::TemporaryRedirect().insert_header(("Location", "/".to_string())).finish())
 }

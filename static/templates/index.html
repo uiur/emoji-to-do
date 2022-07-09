@@ -6,7 +6,11 @@
   <body>
       <h1>{{name}}</h1>
       <p>actix web</p>
-      <p>{{user_id}}</p>
+      <p>
+        {{#with user}}
+        {{slack_user_id}}
+        {{/with}}
+      </p>
       <p><a href="/auth/slack">login with slack</a></p>
   </body>
 </html>

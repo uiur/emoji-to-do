@@ -2,6 +2,7 @@ use std::{collections::HashMap, env};
 
 pub mod reaction;
 pub mod team;
+pub mod user;
 
 pub struct TeamConfig {
     pub team_id: String,
