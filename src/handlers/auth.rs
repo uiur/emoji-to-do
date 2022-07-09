@@ -1,5 +1,6 @@
 use std::env;
 
+use actix_session::Session;
 use actix_web::{get, web::{self, Query}, HttpResponse, Responder};
 use oauth2::{
     basic::BasicClient, AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenUrl, AuthorizationCode, TokenResponse, ExtraTokenFields,
@@ -71,7 +72,7 @@ pub struct CallbackQuery {
     code: String
 }
 
-pub async fn slack_auth_callback(query: Query<CallbackQuery>) -> actix_web::Result<impl Responder> {
+pub async fn slack_auth_callback(query: Query<CallbackQuery>, session: Session) -> actix_web::Result<impl Responder> {
     let client = create_oauth_client();
     log::info!("{}", &query.code);
 
@@ -85,5 +86,9 @@ pub async fn slack_auth_callback(query: Query<CallbackQuery>) -> actix_web::Resu
     println!("{:?}", token_result.extra_fields());
     let extra_fields = token_result.extra_fields();
     let token = token_result.access_token();
-    Ok(HttpResponse::Ok().body(extra_fields.authed_user.id.clone()))
+
+    session.insert("user_id", 1234);
+    let slack_user_id = extra_fields.authed_user.id.clone();
+
+    Ok(HttpResponse::TemporaryRedirect().insert_header(("Location", "/".to_string())).finish())
 }
