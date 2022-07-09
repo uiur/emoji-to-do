@@ -2,7 +2,8 @@
 use std::net::TcpListener;
 
 use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
-use handlers::{auth, hello, webhook};
+use handlebars::Handlebars;
+use handlers::{auth, hello, webhook, root};
 use models::TeamConfigMap;
 use sqlx::{Sqlite, SqlitePool};
 
@@ -12,6 +13,12 @@ mod models;
 mod slack;
 
 pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std::io::Error> {
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_templates_directory(".html", "./static/templates")
+        .unwrap();
+    let handlebars_ref = web::Data::new(handlebars);
+
     let connection = web::Data::new(connection);
     let server = HttpServer::new(move || {
         let json_config = web::JsonConfig::default();
@@ -21,7 +28,9 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
             .app_data(web::Data::new(team_config_map))
             .app_data(json_config)
             .app_data(connection.clone())
+            .app_data(handlebars_ref.clone())
             .wrap(Logger::default())
+            .route("/", web::get().to(root::get_index))
             .route("/hello", web::get().to(hello::get_hello))
             .route("/auth/slack", web::get().to(auth::get_slack_auth))
             .route("/auth/slack/callback", web::get().to(auth::slack_auth_callback))
