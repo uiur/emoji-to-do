@@ -6,5 +6,5 @@ bin/setup
 ```
 
 ```
-cargo watch -x 'run'
+bin/watch
 ```

@@ -1,7 +1,5 @@
 use sqlx::SqlitePool;
 
-
-
 #[derive(Debug)]
 pub struct Team {
     pub id: i64,
@@ -23,6 +21,25 @@ impl Team {
         )
         .fetch_optional(connection)
         .await
+    }
+
+    pub async fn create(
+        connection: &SqlitePool,
+        name: &str,
+        slack_team_id: &str,
+    ) -> Result<i64, sqlx::Error> {
+        let result = sqlx::query!(
+            "
+            insert into teams (name, slack_team_id)
+            values (?, ?)
+        ",
+            name,
+            slack_team_id
+        )
+        .execute(connection)
+        .await?;
+
+        Ok(result.last_insert_rowid())
     }
 }
 

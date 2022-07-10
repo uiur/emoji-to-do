@@ -52,6 +52,7 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
             )
             .route("/api/user", web::get().to(api::user::get_user))
             .route("/api/token", web::get().to(api::token::get_token))
+            .route("/api/team", web::get().to(api::team::get_team))
     })
     .listen(listener)?
     .run();
