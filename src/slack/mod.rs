@@ -1,7 +1,7 @@
-use std::{collections::HashMap, env, fmt::Display};
+use std::{collections::HashMap, env};
 
-use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
-use log::{error, info};
+
+use log::{error};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -62,14 +62,14 @@ pub async fn post_message(channel: &str, text: &str) -> Result<(), ()> {
     data.insert("channel", channel);
     data.insert("text", text);
 
-    let resp = client
+    let _resp = client
         .post("https://slack.com/api/chat.postMessage")
         .header("Content-Type", "application/json")
         .bearer_auth(token)
         .json(&data)
         .send()
         .await
-        .map_err(|e| ())?;
+        .map_err(|_e| ())?;
 
     Ok(())
 }
@@ -160,10 +160,10 @@ pub async fn get_user_info(user: &str) -> Result<SlackUser, Box<dyn std::error::
         .bearer_auth(token)
         .send()
         .await
-        .map_err(|e| SlackClientError::ApiError)?
+        .map_err(|_e| SlackClientError::ApiError)?
         .json::<UserInfoResponse>()
         .await
-        .map_err(|e| SlackClientError::JsonError)?;
+        .map_err(|_e| SlackClientError::JsonError)?;
 
     Ok(result.user)
 }
@@ -182,10 +182,10 @@ pub async fn get_permalink(channel: &str, ts: &str) -> Result<String, Box<dyn st
         .bearer_auth(token)
         .send()
         .await
-        .map_err(|e| SlackClientError::ApiError)?
+        .map_err(|_e| SlackClientError::ApiError)?
         .json::<GetPermalinkResponse>()
         .await
-        .map_err(|e| SlackClientError::JsonError)?;
+        .map_err(|_e| SlackClientError::JsonError)?;
 
     Ok(data.permalink)
 }

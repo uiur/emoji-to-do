@@ -6,7 +6,7 @@ use actix_web::{cookie::Key, dev::Server, middleware::Logger, web, App, HttpServ
 use handlebars::Handlebars;
 use handlers::{auth, hello, root, webhook};
 use models::TeamConfigMap;
-use sqlx::{Sqlite, SqlitePool};
+use sqlx::{SqlitePool};
 
 mod github;
 mod handlers;

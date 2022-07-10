@@ -1,6 +1,6 @@
 use actix_session::Session;
 use actix_web::{web, HttpResponse, Responder};
-use handlebars::{to_json, Handlebars};
+use handlebars::{Handlebars};
 use serde_json::json;
 use sqlx::SqlitePool;
 
@@ -13,13 +13,13 @@ pub async fn get_index(
 ) -> actix_web::Result<impl Responder> {
     let optional_user_id = session
         .get::<i64>("user_id")
-        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let mut user: Option<User> = None;
     if let Some(user_id) = optional_user_id {
         user = User::find(&connection, user_id)
             .await
-            .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
+            .map_err(actix_web::error::ErrorInternalServerError)?;
     }
 
     let data = json!({

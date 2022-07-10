@@ -45,7 +45,7 @@ pub async fn create_issue(
         .json(&params)
         .send()
         .await
-        .map_err(|e| GithubClientError::ApiError)?;
+        .map_err(|_e| GithubClientError::ApiError)?;
 
     log::debug!("{:#?}", resp);
     if !resp.status().is_success() {
@@ -56,7 +56,7 @@ pub async fn create_issue(
     let issue = resp
         .json::<Issue>()
         .await
-        .map_err(|e| GithubClientError::JsonError)?;
+        .map_err(|_e| GithubClientError::JsonError)?;
 
     Ok(issue)
     // Err(GithubClientError::ApiError.into())

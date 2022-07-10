@@ -1,8 +1,8 @@
-use actix_web::{get, web, HttpResponse, Responder};
-use sqlx::{Pool, SqlitePool};
+use actix_web::{web, HttpResponse, Responder};
+use sqlx::{SqlitePool};
 
 pub async fn get_hello(connection: web::Data<SqlitePool>) -> impl Responder {
-    let result = sqlx::query!("select 1 as one;")
+    let _result = sqlx::query!("select 1 as one;")
         .fetch_all(connection.as_ref())
         .await;
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env};
+use std::{collections::HashMap};
 
 pub mod reaction;
 pub mod team;
@@ -40,16 +40,15 @@ impl TeamConfigMap {
         TeamConfigMap { data: config_map }
     }
 
-    pub fn find(&self, team_id: &str, channel: &str, reaction: &str) -> Option<ReactionPattern> {
+    pub fn find(&self, team_id: &str, _channel: &str, reaction: &str) -> Option<ReactionPattern> {
         let team_config = self.data.get(team_id);
         match team_config {
             Some(c) => c
                 .reaction_patterns
                 .iter()
-                .find(|reaction_pattern| reaction == reaction_pattern.name)
-                .and_then(|p| Some(p.clone())),
+                .find(|reaction_pattern| reaction == reaction_pattern.name).cloned(),
             None => {
-                return None;
+                None
             }
         }
     }

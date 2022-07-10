@@ -1,16 +1,16 @@
-use std::{collections::HashMap, option};
+use std::{collections::HashMap};
 
-use actix_web::{error::ErrorNotFound, post, web, HttpRequest, HttpResponse, Responder};
-use futures::{future::try_join_all, try_join, TryFutureExt};
-use log::{error, info};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use futures::{future::try_join_all, TryFutureExt};
+
 use regex::{Captures, Regex};
-use serde::Deserialize;
+
 use sqlx::SqlitePool;
 
 use crate::{
     github,
-    models::{reaction::Reaction, team::Team, TeamConfigMap},
-    slack::{self, SlackEvent, SlackItem, SlackMessage, SlackRequest},
+    models::{reaction::Reaction, team::Team},
+    slack::{self, SlackEvent, SlackItem, SlackRequest},
 };
 
 pub async fn create_slack_events(
@@ -61,12 +61,12 @@ async fn handle_reaction_added(
 
     let team = Team::find(connection.as_ref(), &team_id)
         .await
-        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?
+        .map_err(actix_web::error::ErrorInternalServerError)?
         .ok_or(actix_web::error::ErrorNotFound("team is not found"))?;
 
     let record = Reaction::find_by_team_id_and_name(&connection, team.id, &reaction)
         .await
-        .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
     if let Some(reaction_record) = record {
         log::info!("{:#?}", reaction_record);
@@ -110,8 +110,7 @@ async fn handle_reaction_added(
                 .join("\n");
 
             let title: String = messages
-                .first()
-                .and_then(|m| Some(String::from(&m.text)))
+                .first().map(|m| String::from(&m.text))
                 .unwrap_or_default();
 
             let title = humanize_slack_formatted_text(&title, &slack_user_map);
@@ -136,15 +135,14 @@ fn remove_head_mention(text: &str) -> String {
 }
 
 fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, String>) -> String {
-    let text = text.replace("\n", " ");
-    let text = text.replace("`", "\\`");
+    let text = text.replace('\n', " ");
+    let text = text.replace('`', "\\`");
     let re = Regex::new(r"<(?P<mark>[@#!])?(?P<a>.+?)(\|(?P<b>.+?))?>").unwrap();
     re.replace_all(&text, {
         |caps: &Captures| {
-            if let Some(inner) = caps.name("a").and_then(|m| Some(m.as_str())) {
+            if let Some(inner) = caps.name("a").map(|m| m.as_str()) {
                 match caps
-                    .name("mark")
-                    .and_then(|m| Some(m.as_str()))
+                    .name("mark").map(|m| m.as_str())
                     .unwrap_or_default()
                 {
                     "@" => {
@@ -157,7 +155,7 @@ fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, St
                     }
 
                     "!" => {
-                        let content = match caps.name("b").and_then(|m| Some(m.as_str())) {
+                        let _content = match caps.name("b").map(|m| m.as_str()) {
                             Some(b) => b,
                             None => inner,
                         };
@@ -166,7 +164,7 @@ fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, St
                     }
 
                     "#" => {
-                        let content = match caps.name("b").and_then(|m| Some(m.as_str())) {
+                        let content = match caps.name("b").map(|m| m.as_str()) {
                             Some(b) => b,
                             None => inner,
                         };
@@ -177,8 +175,7 @@ fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, St
                     _ => {
                         format!(
                             "{}{}",
-                            caps.name("mark")
-                                .and_then(|m| Some(m.as_str()))
+                            caps.name("mark").map(|m| m.as_str())
                                 .unwrap_or_default(),
                             inner
                         )
@@ -193,7 +190,7 @@ fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, St
 }
 
 async fn handle_app_mention(
-    user: String,
+    _user: String,
     channel: String,
     text: String,
 ) -> actix_web::Result<HttpResponse> {
@@ -217,7 +214,7 @@ async fn handle_app_mention(
 mod tests {
     use std::collections::HashMap;
 
-    use crate::slack;
+    
 
     use super::{humanize_slack_formatted_text, remove_head_mention};
 

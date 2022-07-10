@@ -1,6 +1,6 @@
 use sqlx::SqlitePool;
 
-use crate::slack;
+
 
 #[derive(Debug)]
 pub struct Team {
