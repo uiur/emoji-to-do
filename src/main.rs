@@ -9,6 +9,7 @@ mod github;
 mod handlers;
 mod models;
 mod slack;
+mod token;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

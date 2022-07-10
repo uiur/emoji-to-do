@@ -4,13 +4,23 @@
       <title>{{name}}</title>
   </head>
   <body>
-      <h1>{{name}}</h1>
+      <!-- <h1>{{name}}</h1>
       <p>actix web</p>
       <p>
         {{#with user}}
         {{slack_user_id}}
         {{/with}}
       </p>
-      <p><a href="/auth/slack">login with slack</a></p>
+      <p><a href="/auth/slack">login with slack</a></p> -->
+      <div id="root"></div>
+
+      <script type="module">
+        import RefreshRuntime from 'http://localhost:3000/@react-refresh'
+        RefreshRuntime.injectIntoGlobalHook(window)
+        window.$RefreshReg$ = () => {}
+        window.$RefreshSig$ = () => (type) => type
+        window.__vite_plugin_react_preamble_installed__ = true
+      </script>
+      <script type="module" src="http://localhost:3000/src/main.tsx"></script>
   </body>
 </html>

@@ -1,43 +1,51 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import logo from './logo.svg'
 import './App.css'
+import axios from 'axios'
+
+const client = axios.create({});
+interface User {
+  id: string,
+  slack_user_id: string,
+  slack_team_id: string,
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [token, setToken] = useState(null)
+  const [user, setUser] = useState<User | null>(null)
+
+  useEffect(() => {
+    (async () => {
+      const res = await client.get('/api/token')
+      setToken(res.data.token)
+    })()
+  }, [])
+
+  useEffect(() => {
+    (async () => {
+      if (!token) return
+      const res = await client.get('/api/user', {
+         headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      setUser(res.data)
+    })()
+  }, [token])
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>Hello Vite + React!</p>
-        <p>
-          <button type="button" onClick={() => setCount((count) => count + 1)}>
-            count is: {count}
-          </button>
-        </p>
-        <p>
-          Edit <code>App.tsx</code> and save to test HMR updates.
-        </p>
-        <p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-          {' | '}
-          <a
-            className="App-link"
-            href="https://vitejs.dev/guide/features.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Vite Docs
-          </a>
-        </p>
-      </header>
+    <div>
+      <h1>emoji-to-do</h1>
+      {
+        user && (
+          <div>
+            <p>{user.id}</p>
+            <p>{user.slack_user_id}</p>
+            <p>{user.slack_team_id}</p>
+          </div>
+        )
+      }
+      <a href='/auth/slack'>Login with Slack</a>
     </div>
   )
 }

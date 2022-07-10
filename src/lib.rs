@@ -12,6 +12,7 @@ mod github;
 mod handlers;
 pub mod models;
 mod slack;
+pub mod token;
 
 pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std::io::Error> {
     let mut handlebars = Handlebars::new();
@@ -50,6 +51,7 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
                 web::post().to(webhook::create_slack_events),
             )
             .route("/api/user", web::get().to(api::user::get_user))
+            .route("/api/token", web::get().to(api::token::get_token))
     })
     .listen(listener)?
     .run();

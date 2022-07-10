@@ -7,13 +7,6 @@ use serde_json::json;
 
 mod test;
 
-fn generate_jwt(user_id: i64) -> Result<String, Box<dyn std::error::Error>> {
-    let master_key = env::var("MASTER_KEY").expect("MASTER_KEY is expected");
-    let key: Hmac<sha2::Sha256> = Hmac::new_from_slice(master_key.as_bytes())?;
-    let body = json!({ "user_id": user_id });
-    Ok(body.sign_with_key(&key).unwrap())
-}
-
 #[actix_rt::test]
 async fn test_api_user_when_not_authenticated() {
     let (host, _) = test::spawn_app().await;
@@ -34,7 +27,7 @@ async fn test_api_user_when_authenticated() -> Result<(), Box<dyn std::error::Er
 
     let user_id =
         emoji_to_do::models::user::User::create(&connection, "TEAM", "USER", "TOKEN").await?;
-    let token = generate_jwt(user_id)?;
+    let token = emoji_to_do::token::generate(user_id)?;
 
     let response = client
         .get(format!("{}/api/user", host))
