@@ -1,10 +1,10 @@
 #![feature(assert_matches)]
-use std::{net::TcpListener, env};
+use std::{env, net::TcpListener};
 
-use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer, cookie::Key};
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::{cookie::Key, dev::Server, middleware::Logger, web, App, HttpServer};
 use handlebars::Handlebars;
-use handlers::{auth, hello, webhook, root};
+use handlers::{auth, hello, root, webhook};
 use models::TeamConfigMap;
 use sqlx::{Sqlite, SqlitePool};
 
@@ -34,11 +34,17 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
             .app_data(connection.clone())
             .app_data(handlebars_ref.clone())
             .wrap(Logger::default())
-            .wrap(SessionMiddleware::new(CookieSessionStore::default(), secret_key.clone()))
+            .wrap(SessionMiddleware::new(
+                CookieSessionStore::default(),
+                secret_key.clone(),
+            ))
             .route("/", web::get().to(root::get_index))
             .route("/hello", web::get().to(hello::get_hello))
             .route("/auth/slack", web::get().to(auth::get_slack_auth))
-            .route("/auth/slack/callback", web::get().to(auth::slack_auth_callback))
+            .route(
+                "/auth/slack/callback",
+                web::get().to(auth::slack_auth_callback),
+            )
             .route(
                 "/webhook/slack/events",
                 web::post().to(webhook::create_slack_events),
