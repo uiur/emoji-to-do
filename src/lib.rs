@@ -4,13 +4,13 @@ use std::{env, net::TcpListener};
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::Key, dev::Server, middleware::Logger, web, App, HttpServer};
 use handlebars::Handlebars;
-use handlers::{auth, hello, root, webhook};
+use handlers::{api, auth, hello, root, webhook};
 use models::TeamConfigMap;
-use sqlx::{SqlitePool};
+use sqlx::SqlitePool;
 
 mod github;
 mod handlers;
-mod models;
+pub mod models;
 mod slack;
 
 pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std::io::Error> {
@@ -20,7 +20,7 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
         .unwrap();
     let handlebars_ref = web::Data::new(handlebars);
 
-    let master_key = env::var("MASTER_KEY").unwrap();
+    let master_key = env::var("MASTER_KEY").expect("MASTER_KEY is expected");
     let secret_key = Key::derive_from(master_key.as_bytes());
 
     let connection = web::Data::new(connection);
@@ -49,6 +49,7 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
                 "/webhook/slack/events",
                 web::post().to(webhook::create_slack_events),
             )
+            .route("/api/user", web::get().to(api::user::get_user))
     })
     .listen(listener)?
     .run();

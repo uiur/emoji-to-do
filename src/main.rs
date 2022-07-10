@@ -1,9 +1,7 @@
 #![feature(assert_matches)]
 use std::net::TcpListener;
 
-
 use emoji_to_do::run;
-
 
 use sqlx::sqlite::SqlitePoolOptions;
 

@@ -620,12 +620,15 @@ dependencies = [
  "env_logger",
  "futures",
  "handlebars",
+ "hmac",
+ "jwt",
  "log",
  "oauth2",
  "regex",
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
 ]
 
@@ -1130,6 +1133,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "671a26f820db17c2a2750743f1dd03bafd15b98c9f30c7c2628c024c05d73397"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "jwt"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6204285f77fe7d9784db3fdc449ecce1a0114927a51d5a41c4c7a292011c015f"
+dependencies = [
+ "base64",
+ "crypto-common",
+ "digest 0.10.3",
+ "hmac",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]

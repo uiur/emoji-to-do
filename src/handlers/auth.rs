@@ -6,12 +6,13 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenResponse, TokenUrl,
+    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
+    TokenResponse, TokenUrl,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{SqlitePool};
+use sqlx::SqlitePool;
 
-use crate::{models::user::User};
+use crate::models::user::User;
 
 type OauthClient = oauth2::Client<
     oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,
@@ -45,11 +46,10 @@ struct AuthedUserFields {
 }
 
 fn create_oauth_client() -> OauthClient {
-    let client_id = env::var("SLACK_CLIENT_ID").unwrap();
-    let client_secret = env::var("SLACK_CLIENT_SECRET").unwrap();
-    let http_host = env::var("E2D_HTTP_HOST").unwrap();
+    let client_id = env::var("SLACK_CLIENT_ID").expect("SLACK_CLIENT_ID is expected");
+    let client_secret = env::var("SLACK_CLIENT_SECRET").expect("SLACK_CLIENT_SECRET is expected");
+    let http_host = env::var("E2D_HTTP_HOST").expect("E2D_HTTP_HOST is expected");
 
-    
     OauthClient::new(
         ClientId::new(client_id),
         Some(ClientSecret::new(client_secret)),
@@ -108,10 +108,9 @@ pub async fn slack_auth_callback(
             session.insert("user_id", found_user.id);
         }
         None => {
-            let user_id =
-                User::create(&connection, &slack_team_id, &slack_user_id, token.secret())
-                    .await
-                    .map_err(actix_web::error::ErrorInternalServerError)?;
+            let user_id = User::create(&connection, &slack_team_id, &slack_user_id, token.secret())
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?;
 
             session.insert("user_id", user_id);
         }

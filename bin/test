@@ -1,0 +1,6 @@
+#!/bin/bash
+set -o errexit
+set -o pipefail
+set -o xtrace
+
+RUST_BACKTRACE=1 DATABASE_URL=sqlite:db/test.db cargo test -- --nocapture

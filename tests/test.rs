@@ -1,6 +1,6 @@
 use std::net::TcpListener;
 
-use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+use sqlx::{sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 
 async fn setup_db() -> SqlitePool {
     let connection = SqlitePoolOptions::new()
@@ -17,14 +17,15 @@ async fn setup_db() -> SqlitePool {
     connection
 }
 
-pub async fn spawn_app() -> String {
+pub async fn spawn_app() -> (String, SqlitePool) {
+    dotenv::from_filename(".env.test").ok();
     let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind");
     let port = listener.local_addr().unwrap().port();
 
     let connection = setup_db().await;
 
-    let server = emoji_to_do::run(listener, connection).expect("Failed to bind address");
+    let server = emoji_to_do::run(listener, connection.clone()).expect("Failed to bind address");
     let _ = actix_rt::spawn(server);
 
-    format!("http://127.0.0.1:{}", port)
+    (format!("http://127.0.0.1:{}", port), connection)
 }

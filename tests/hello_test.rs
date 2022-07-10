@@ -2,8 +2,8 @@ use test::spawn_app;
 mod test;
 
 #[actix_rt::test]
-async fn hello_returns_success() {
-    let host = spawn_app().await;
+async fn test_hello_returns_success() {
+    let (host, _) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let response = client
