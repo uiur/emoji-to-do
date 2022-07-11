@@ -25,6 +25,18 @@ impl Team {
         .await
     }
 
+    pub async fn find_by_id(connection: &SqlitePool, id: i64) -> Result<Option<Team>, sqlx::Error> {
+        sqlx::query_as!(
+            Team,
+            "
+      select id, name, slack_team_id from teams where id = ? limit 1
+    ",
+            id
+        )
+        .fetch_optional(connection)
+        .await
+    }
+
     pub async fn create(
         connection: &SqlitePool,
         name: &str,

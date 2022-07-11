@@ -1,6 +1,7 @@
+use serde::Serialize;
 use sqlx::SqlitePool;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Reaction {
     pub id: i64,
     pub name: String,

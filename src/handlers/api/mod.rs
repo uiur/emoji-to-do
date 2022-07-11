@@ -6,6 +6,7 @@ use sqlx::SqlitePool;
 
 use crate::models::user::User;
 
+pub mod reaction;
 pub mod team;
 pub mod token;
 pub mod user;
