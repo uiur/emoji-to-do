@@ -12,10 +12,6 @@ use crate::models::user::User;
 
 use super::get_current_user;
 
-#[derive(Serialize, Deserialize)]
-struct JwtBody {
-    user_id: i64,
-}
 
 pub async fn get_user(connection: web::Data<SqlitePool>, req: HttpRequest) -> impl Responder {
     let optional_user = get_current_user(connection.as_ref(), &req).await;

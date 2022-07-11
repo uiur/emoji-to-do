@@ -1,5 +1,7 @@
 use sqlx::SqlitePool;
 
+use super::reaction::Reaction;
+
 #[derive(Debug)]
 pub struct Team {
     pub id: i64,
@@ -41,6 +43,23 @@ impl Team {
 
         Ok(result.last_insert_rowid())
     }
+
+    pub async fn reactions(&self, connection: &SqlitePool) -> Result<Vec<Reaction>, sqlx::Error> {
+        let result = sqlx::query_as!(
+            Reaction,
+            "
+            select id, name, team_id, repo
+            from reactions
+            where team_id = ?
+            order by id
+        ",
+            self.id
+        )
+        .fetch_all(connection)
+        .await?;
+
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
@@ -49,6 +68,9 @@ mod tests {
 
     use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 
+    use crate::slack;
+
+    use super::Reaction;
     use super::Team;
 
     async fn setup_db() -> SqlitePool {
@@ -76,5 +98,18 @@ mod tests {
             }
             Err(e) => panic!("{}", e),
         }
+    }
+
+    #[actix_rt::test]
+    async fn team_reactions() -> Result<(), Box<dyn std::error::Error>> {
+        let connection = setup_db().await;
+        let slack_team_id = "team_id";
+        let team_id = Team::create(&connection, "team_name", slack_team_id).await?;
+        Reaction::create(&connection, team_id, "eyes", "uiur/sandbox").await?;
+
+        let team = Team::find(&connection, slack_team_id).await?.unwrap();
+        let reactions = team.reactions(&connection).await?;
+        assert_eq!(reactions.len(), 1);
+        Ok(())
     }
 }

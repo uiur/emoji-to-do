@@ -9,6 +9,27 @@ pub struct Reaction {
 }
 
 impl Reaction {
+    pub async fn create(
+        connection: &SqlitePool,
+        team_id: i64,
+        name: &str,
+        repo: &str,
+    ) -> Result<i64, sqlx::Error> {
+        let result = sqlx::query!(
+            "
+        insert into reactions (team_id, name, repo)
+        values (?, ?, ?);
+        ",
+            team_id,
+            name,
+            repo
+        )
+        .execute(connection)
+        .await?;
+
+        Ok(result.last_insert_rowid())
+    }
+
     pub async fn find_by_team_id_and_name(
         connection: &SqlitePool,
         team_id: i64,
