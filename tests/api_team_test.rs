@@ -3,9 +3,17 @@ use std::env;
 use actix_web::cookie::{Cookie, CookieJar};
 use hmac::{Hmac, Mac};
 use jwt::{token::signed, SignWithKey};
+use serde::Deserialize;
 use serde_json::json;
 
 mod test;
+
+#[derive(Deserialize)]
+struct AssertedTeamResponse {
+    id: i64,
+    name: String,
+    slack_team_id: String,
+}
 
 #[actix_rt::test]
 async fn test_api_team_when_authenticated() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,7 +24,7 @@ async fn test_api_team_when_authenticated() -> Result<(), Box<dyn std::error::Er
         emoji_to_do::models::user::User::create(&connection, "TEAM", "USER", "TOKEN").await?;
     let token = emoji_to_do::token::generate(user_id)?;
     let team_id =
-      emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", "TEAM").await?;
+        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", "TEAM").await?;
 
     let response = client
         .get(format!("{}/api/team", host))
@@ -30,5 +38,9 @@ async fn test_api_team_when_authenticated() -> Result<(), Box<dyn std::error::Er
     let body = response.text().await.expect("failed to fetch body");
 
     println!("{}", body);
+
+    let value: AssertedTeamResponse = serde_json::from_str(&body)?;
+    assert_eq!(value.id, team_id);
+
     Ok(())
 }

@@ -41,5 +41,9 @@ async fn test_api_user_when_authenticated() -> Result<(), Box<dyn std::error::Er
     let body = response.text().await.expect("failed to fetch body");
 
     println!("{}", body);
+
+    let value: serde_json::Value = serde_json::from_str(&body)?;
+    assert_eq!(value["id"], user_id);
+
     Ok(())
 }

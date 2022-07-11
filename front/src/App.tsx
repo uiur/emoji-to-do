@@ -52,7 +52,6 @@ function App() {
     })()
   }, [token])
 
-
   return (
     <div>
       <h1>emoji-to-do</h1>
