@@ -10,6 +10,18 @@ pub struct Reaction {
 }
 
 impl Reaction {
+    pub async fn find(connection: &SqlitePool, id: i64) -> Result<Option<Reaction>, sqlx::Error> {
+        sqlx::query_as!(
+            Reaction,
+            "
+        select id, name, team_id, repo from reactions where id = ? limit 1
+        ",
+            id
+        )
+        .fetch_optional(connection)
+        .await
+    }
+
     pub async fn create(
         connection: &SqlitePool,
         team_id: i64,
