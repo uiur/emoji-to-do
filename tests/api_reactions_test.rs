@@ -1,30 +1,53 @@
 use std::{collections::HashMap, env};
 
 use actix_web::cookie::{Cookie, CookieJar};
+use emoji_to_do::models::user::User;
 use hmac::{Hmac, Mac};
 use jwt::{token::signed, SignWithKey};
 use serde::Deserialize;
 use serde_json::json;
+use sqlx::SqlitePool;
 
 mod test;
+
+fn create_api_client(user_id: i64) -> Result<reqwest::Client, Box<dyn std::error::Error>> {
+    let token = emoji_to_do::token::generate(user_id)?;
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert(
+        "Authorization",
+        format!("Bearer {}", token).parse().unwrap(),
+    );
+
+    let client = reqwest::Client::builder()
+        .default_headers(headers)
+        .build()?;
+    Ok(client)
+}
+
+async fn create_user(connection: &SqlitePool) -> Result<User, Box<dyn std::error::Error>> {
+    let user_id =
+        emoji_to_do::models::user::User::create(connection, "TEAM", "USER", "TOKEN").await?;
+    let user = emoji_to_do::models::user::User::find(connection, user_id)
+        .await?
+        .unwrap();
+    Ok(user)
+}
 
 #[actix_rt::test]
 async fn test_api_reactions() -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
-    let client = reqwest::Client::new();
 
-    let user_id =
-        emoji_to_do::models::user::User::create(&connection, "TEAM", "USER", "TOKEN").await?;
-    let token = emoji_to_do::token::generate(user_id)?;
+    let user = create_user(&connection).await?;
     let team_id =
-        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", "TEAM").await?;
+        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", &user.slack_team_id)
+            .await?;
 
     emoji_to_do::models::reaction::Reaction::create(&connection, team_id, "eyes", "uiur/sandbox")
         .await?;
 
+    let client = create_api_client(user.id)?;
     let response = client
         .get(format!("{}/api/teams/{}/reactions", host, team_id))
-        .header("Authorization", format!("Bearer {}", token))
         .send()
         .await
         .expect("failed to fetch api");
@@ -44,11 +67,8 @@ async fn test_api_reactions() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_api_reactions_when_user_does_not_belong_to_team(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
-    let client = reqwest::Client::new();
 
-    let user_id =
-        emoji_to_do::models::user::User::create(&connection, "TEAM1", "USER", "TOKEN").await?;
-    let token = emoji_to_do::token::generate(user_id)?;
+    let user = create_user(&connection).await?;
     let team_id =
         emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", "TEAM2").await?;
 
@@ -60,9 +80,10 @@ async fn test_api_reactions_when_user_does_not_belong_to_team(
     )
     .await?;
 
+    let client = create_api_client(user.id)?;
+
     let response = client
         .get(format!("{}/api/teams/{}/reactions", host, team_id))
-        .header("Authorization", format!("Bearer {}", token))
         .send()
         .await
         .expect("failed to fetch api");
@@ -75,19 +96,17 @@ async fn test_api_reactions_when_user_does_not_belong_to_team(
 #[actix_rt::test]
 async fn test_api_create_reaction() -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
-    let client = reqwest::Client::new();
 
-    let user_id =
-        emoji_to_do::models::user::User::create(&connection, "TEAM1", "USER", "TOKEN").await?;
-    let token = emoji_to_do::token::generate(user_id)?;
+    let user = create_user(&connection).await?;
     let team_id =
-        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", "TEAM1").await?;
+        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", &user.slack_team_id)
+            .await?;
 
     let request_body = HashMap::from([("name", "eyes"), ("repo", "uiur/sandbox")]);
 
+    let client = create_api_client(user.id)?;
     let response = client
         .post(format!("{}/api/teams/{}/reactions", host, team_id))
-        .header("Authorization", format!("Bearer {}", token))
         .json(&request_body)
         .send()
         .await
