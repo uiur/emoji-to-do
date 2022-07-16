@@ -1,6 +1,6 @@
 use sqlx::SqlitePool;
 
-use super::reaction::Reaction;
+use super::{reaction::Reaction, Error};
 
 #[derive(Debug)]
 pub struct Team {
@@ -25,7 +25,7 @@ impl Team {
         .await
     }
 
-    pub async fn find_by_id(connection: &SqlitePool, id: i64) -> Result<Option<Team>, sqlx::Error> {
+    pub async fn find_by_id(connection: &SqlitePool, id: i64) -> Result<Option<Team>, Error> {
         sqlx::query_as!(
             Team,
             "
@@ -35,6 +35,7 @@ impl Team {
         )
         .fetch_optional(connection)
         .await
+        .map_err(|e| e.into())
     }
 
     pub async fn create(

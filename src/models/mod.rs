@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 pub mod reaction;
 pub mod team;
@@ -46,13 +46,32 @@ impl TeamConfigMap {
             Some(c) => c
                 .reaction_patterns
                 .iter()
-                .find(|reaction_pattern| reaction == reaction_pattern.name).cloned(),
-            None => {
-                None
-            }
+                .find(|reaction_pattern| reaction == reaction_pattern.name)
+                .cloned(),
+            None => None,
         }
     }
 }
+
+#[derive(Debug)]
+pub enum Error {
+    SqlError(sqlx::Error),
+}
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::SqlError(e) => e.fmt(f),
+        }
+    }
+}
+impl actix_web::error::ResponseError for Error {}
+impl From<sqlx::Error> for Error {
+    fn from(e: sqlx::Error) -> Self {
+        Error::SqlError(e)
+    }
+}
+
+impl std::error::Error for Error {}
 
 #[cfg(test)]
 mod tests {

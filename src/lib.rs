@@ -61,6 +61,14 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
                 "/api/teams/{team_id}/reactions",
                 web::post().to(api::reaction::create_reaction),
             )
+            .route(
+                "/api/reactions/{reaction_id}",
+                web::delete().to(api::reaction::destroy_reaction),
+            )
+            .route(
+                "/api/reactions/{reaction_id}",
+                web::put().to(api::reaction::put_reaction),
+            )
     })
     .listen(listener)?
     .run();

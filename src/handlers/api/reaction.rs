@@ -74,3 +74,63 @@ pub async fn create_reaction(
 
     Ok(HttpResponse::Created().json(reaction))
 }
+
+pub type UpdateReactionRequestBody = CreateReactionRequestBody;
+
+pub async fn put_reaction(
+    connection: web::Data<SqlitePool>,
+    path: web::Path<(i64,)>,
+    req: HttpRequest,
+    body: web::Json<UpdateReactionRequestBody>,
+) -> actix_web::Result<impl Responder> {
+    let (reaction_id,) = path.into_inner();
+    let reaction = Reaction::find(&connection, reaction_id)
+        .await?
+        .ok_or(ErrorNotFound("reaction is not found"))?;
+
+    let user = get_current_user(&connection, &req)
+        .await
+        .ok_or_else(|| ErrorUnauthorized(""))?;
+
+    let team = Team::find_by_id(&connection, reaction.team_id)
+        .await?
+        .ok_or_else(|| ErrorNotFound("team is not found"))?;
+
+    if team.slack_team_id != user.slack_team_id {
+        return Err(ErrorNotFound("reaction is not found"));
+    }
+
+    Reaction::update(&connection, reaction.id, &body.name, &body.repo).await?;
+    let reaction = Reaction::find(&connection, reaction_id)
+        .await?
+        .ok_or_else(|| ErrorNotFound("reaction is not found"))?;
+
+    Ok(HttpResponse::Ok().json(reaction))
+}
+
+pub async fn destroy_reaction(
+    connection: web::Data<SqlitePool>,
+    path: web::Path<(i64,)>,
+    req: HttpRequest,
+) -> actix_web::Result<impl Responder> {
+    let (reaction_id,) = path.into_inner();
+    let reaction = Reaction::find(&connection, reaction_id)
+        .await?
+        .ok_or(ErrorNotFound("reaction is not found"))?;
+
+    let user = get_current_user(&connection, &req)
+        .await
+        .ok_or_else(|| ErrorUnauthorized(""))?;
+
+    let team = Team::find_by_id(&connection, reaction.team_id)
+        .await?
+        .ok_or(ErrorNotFound("team is not found"))?;
+
+    if team.slack_team_id != user.slack_team_id {
+        return Err(ErrorNotFound("reaction is not found"));
+    }
+
+    Reaction::destroy(&connection, reaction.id).await?;
+
+    Ok(HttpResponse::NoContent().finish())
+}

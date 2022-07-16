@@ -1,6 +1,8 @@
 use serde::Serialize;
 use sqlx::SqlitePool;
 
+use super::Error;
+
 #[derive(Debug, Serialize)]
 pub struct Reaction {
     pub id: i64,
@@ -10,8 +12,8 @@ pub struct Reaction {
 }
 
 impl Reaction {
-    pub async fn find(connection: &SqlitePool, id: i64) -> Result<Option<Reaction>, sqlx::Error> {
-        sqlx::query_as!(
+    pub async fn find(connection: &SqlitePool, id: i64) -> Result<Option<Reaction>, Error> {
+        let result = sqlx::query_as!(
             Reaction,
             "
         select id, name, team_id, repo from reactions where id = ? limit 1
@@ -19,7 +21,8 @@ impl Reaction {
             id
         )
         .fetch_optional(connection)
-        .await
+        .await?;
+        Ok(result)
     }
 
     pub async fn create(
@@ -27,7 +30,7 @@ impl Reaction {
         team_id: i64,
         name: &str,
         repo: &str,
-    ) -> Result<i64, sqlx::Error> {
+    ) -> Result<i64, Error> {
         let result = sqlx::query!(
             "
         insert into reactions (team_id, name, repo)
@@ -41,6 +44,39 @@ impl Reaction {
         .await?;
 
         Ok(result.last_insert_rowid())
+    }
+
+    pub async fn update(
+        connection: &SqlitePool,
+        id: i64,
+        name: &str,
+        repo: &str,
+    ) -> Result<(), Error> {
+        sqlx::query!(
+            "
+            update reactions
+            set (name, repo) = (?, ?)
+            where reactions.id = ?
+        ",
+            name,
+            repo,
+            id
+        )
+        .execute(connection)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn destroy(connection: &SqlitePool, id: i64) -> Result<(), Error> {
+        sqlx::query!(
+            "
+        delete from reactions where id = ?
+        ",
+            id
+        )
+        .execute(connection)
+        .await?;
+        Ok(())
     }
 
     pub async fn find_by_team_id_and_name(
