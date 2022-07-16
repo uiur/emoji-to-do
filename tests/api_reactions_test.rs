@@ -1,7 +1,8 @@
-use std::{collections::HashMap, env};
+#![feature(assert_matches)]
+use std::{assert_matches::assert_matches, collections::HashMap, env, option};
 
 use actix_web::cookie::{Cookie, CookieJar};
-use emoji_to_do::models::user::User;
+use emoji_to_do::models::{reaction::Reaction, user::User};
 use hmac::{Hmac, Mac};
 use jwt::{token::signed, SignWithKey};
 use serde::Deserialize;
@@ -93,6 +94,11 @@ async fn test_api_reactions_when_user_does_not_belong_to_team(
     Ok(())
 }
 
+#[derive(Deserialize)]
+struct CreateReactionResponse {
+    id: i64,
+}
+
 #[actix_rt::test]
 async fn test_api_create_reaction() -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
@@ -102,17 +108,21 @@ async fn test_api_create_reaction() -> Result<(), Box<dyn std::error::Error>> {
         emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", &user.slack_team_id)
             .await?;
 
-    let request_body = HashMap::from([("name", "eyes"), ("repo", "uiur/sandbox")]);
-
     let client = create_api_client(user.id)?;
     let response = client
         .post(format!("{}/api/teams/{}/reactions", host, team_id))
-        .json(&request_body)
+        .json(&json!({
+                  "name": "eyes", "repo": "uiur/sandbox"
+        }))
         .send()
         .await
         .expect("failed to fetch api");
 
     assert_eq!(response.status().as_u16(), 201);
+    let json: CreateReactionResponse = response.json().await?;
+    let id: i64 = json.id;
+    let optional_reaction = Reaction::find(&connection, id).await?;
+    assert_matches!(optional_reaction, Some(_));
 
     Ok(())
 }
