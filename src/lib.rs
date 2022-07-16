@@ -5,7 +5,6 @@ use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::Key, dev::Server, middleware::Logger, web, App, HttpServer};
 use handlebars::Handlebars;
 use handlers::{api, auth, hello, root, webhook};
-use models::TeamConfigMap;
 use sqlx::SqlitePool;
 
 mod github;
@@ -27,10 +26,8 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
     let connection = web::Data::new(connection);
     let server = HttpServer::new(move || {
         let json_config = web::JsonConfig::default();
-        let team_config_map = TeamConfigMap::new();
 
         App::new()
-            .app_data(web::Data::new(team_config_map))
             .app_data(json_config)
             .app_data(connection.clone())
             .app_data(handlebars_ref.clone())
