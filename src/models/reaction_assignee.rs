@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{Sqlite, SqlitePool};
 
-use super::Error;
+use super::{reaction::Reaction, Error};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReactionAssignee {
@@ -23,6 +23,26 @@ impl ReactionAssignee {
             id
         )
         .fetch_optional(connection)
+        .await?;
+
+        Ok(result)
+    }
+
+    pub async fn search_by_reaction_id(
+        connection: &SqlitePool,
+        reaction_id: i64,
+    ) -> Result<Vec<ReactionAssignee>, Error> {
+        let result = sqlx::query_as!(
+            ReactionAssignee,
+            "
+select id, name, reaction_id
+from reaction_assignees
+where reaction_id = ?
+order by id
+",
+            reaction_id
+        )
+        .fetch_all(connection)
         .await?;
 
         Ok(result)

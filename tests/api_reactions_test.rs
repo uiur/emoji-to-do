@@ -2,7 +2,9 @@
 use std::{assert_matches::assert_matches, collections::HashMap, env, option};
 
 use actix_web::cookie::{Cookie, CookieJar};
-use emoji_to_do::models::{reaction::Reaction, team::Team, user::User};
+use emoji_to_do::models::{
+    reaction::Reaction, reaction_assignee::ReactionAssignee, team::Team, user::User,
+};
 use hmac::{Hmac, Mac};
 use jwt::{token::signed, SignWithKey};
 use serde::Deserialize;
@@ -17,12 +19,10 @@ async fn test_api_reactions() -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
 
     let user = create_user(&connection).await?;
-    let team_id =
-        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", &user.slack_team_id)
-            .await?;
+    let team_id = Team::create(&connection, "TEAM EMOJI", &user.slack_team_id).await?;
 
-    emoji_to_do::models::reaction::Reaction::create(&connection, team_id, "eyes", "uiur/sandbox")
-        .await?;
+    let reaction_id = Reaction::create(&connection, team_id, "eyes", "uiur/sandbox").await?;
+    ReactionAssignee::create(&connection, reaction_id, "uiur").await?;
 
     let client = create_api_client(user.id)?;
     let response = client

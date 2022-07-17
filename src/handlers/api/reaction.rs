@@ -2,12 +2,21 @@ use actix_web::{
     error::{ErrorForbidden, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
     web, Error, HttpRequest, HttpResponse, Responder,
 };
+use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::models::{reaction::Reaction, team::Team};
+use crate::models::{reaction::Reaction, reaction_assignee::ReactionAssignee, team::Team};
 
 use super::get_current_user;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ReactionResponse {
+    id: i64,
+    name: String,
+    repo: String,
+    reaction_assignees: Vec<ReactionAssignee>,
+}
 
 pub async fn get_reactions(
     connection: web::Data<SqlitePool>,
@@ -33,7 +42,25 @@ pub async fn get_reactions(
         .await
         .map_err(ErrorInternalServerError)?;
 
-    Ok(HttpResponse::Ok().json(reactions))
+    let reaction_assignees_results = try_join_all(
+        reactions
+            .iter()
+            .map(|reaction| ReactionAssignee::search_by_reaction_id(&connection, reaction.id)),
+    )
+    .await?;
+
+    let result: Vec<ReactionResponse> = reactions
+        .iter()
+        .zip(reaction_assignees_results)
+        .map(|(reaction, reaction_assignees)| ReactionResponse {
+            id: reaction.id,
+            name: reaction.name.clone(),
+            repo: reaction.repo.clone(),
+            reaction_assignees,
+        })
+        .collect();
+
+    Ok(HttpResponse::Ok().json(result))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
