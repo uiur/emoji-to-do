@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 pub mod reaction;
+pub mod reaction_assignee;
 pub mod team;
 pub mod user;
 

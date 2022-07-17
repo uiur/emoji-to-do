@@ -8,31 +8,9 @@ use jwt::{token::signed, SignWithKey};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::SqlitePool;
+use test::{create_api_client, create_user};
 
 mod test;
-
-fn create_api_client(user_id: i64) -> Result<reqwest::Client, Box<dyn std::error::Error>> {
-    let token = emoji_to_do::token::generate(user_id)?;
-    let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert(
-        "Authorization",
-        format!("Bearer {}", token).parse().unwrap(),
-    );
-
-    let client = reqwest::Client::builder()
-        .default_headers(headers)
-        .build()?;
-    Ok(client)
-}
-
-async fn create_user(connection: &SqlitePool) -> Result<User, Box<dyn std::error::Error>> {
-    let user_id =
-        emoji_to_do::models::user::User::create(connection, "TEAM", "USER", "TOKEN").await?;
-    let user = emoji_to_do::models::user::User::find(connection, user_id)
-        .await?
-        .unwrap();
-    Ok(user)
-}
 
 #[actix_rt::test]
 async fn test_api_reactions() -> Result<(), Box<dyn std::error::Error>> {

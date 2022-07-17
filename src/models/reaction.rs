@@ -1,7 +1,7 @@
 use serde::Serialize;
 use sqlx::SqlitePool;
 
-use super::Error;
+use super::{team::Team, Error};
 
 #[derive(Debug, Serialize)]
 pub struct Reaction {
@@ -98,5 +98,9 @@ impl Reaction {
         )
         .fetch_optional(connection)
         .await
+    }
+
+    pub async fn team(&self, connection: &SqlitePool) -> Result<Option<Team>, Error> {
+        Team::find_by_id(connection, self.team_id).await
     }
 }

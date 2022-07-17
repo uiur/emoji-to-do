@@ -1,5 +1,6 @@
 use std::net::TcpListener;
 
+use emoji_to_do::models::user::User;
 use sqlx::{sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 
 async fn setup_db() -> SqlitePool {
@@ -28,4 +29,27 @@ pub async fn spawn_app() -> (String, SqlitePool) {
     let _ = actix_rt::spawn(server);
 
     (format!("http://127.0.0.1:{}", port), connection)
+}
+
+pub fn create_api_client(user_id: i64) -> Result<reqwest::Client, Box<dyn std::error::Error>> {
+    let token = emoji_to_do::token::generate(user_id)?;
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert(
+        "Authorization",
+        format!("Bearer {}", token).parse().unwrap(),
+    );
+
+    let client = reqwest::Client::builder()
+        .default_headers(headers)
+        .build()?;
+    Ok(client)
+}
+
+pub async fn create_user(connection: &SqlitePool) -> Result<User, Box<dyn std::error::Error>> {
+    let user_id =
+        emoji_to_do::models::user::User::create(connection, "TEAM", "USER", "TOKEN").await?;
+    let user = emoji_to_do::models::user::User::find(connection, user_id)
+        .await?
+        .unwrap();
+    Ok(user)
 }
