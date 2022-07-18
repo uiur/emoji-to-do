@@ -110,6 +110,17 @@ function ReactionForm({
   )
 }
 
+function useApiClient() {
+  const token = useContext(TokenContext)
+  const client = axios.create({
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  return client
+}
+
 function ReactionAssigneeForm({
   reaction,
   onSave,
@@ -118,21 +129,13 @@ function ReactionAssigneeForm({
   onSave: () => void
 }) {
   const [name, setName] = useState('')
-  const token = useContext(TokenContext)
   const [errorMessage, setErrorMessage] = useState('')
+  const client = useApiClient()
   const onSubmit = useCallback(async () => {
     const res = await client
-      .post(
-        `/api/reactions/${reaction.id}/reaction_assignees`,
-        {
-          name: name,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
+      .post(`/api/reactions/${reaction.id}/reaction_assignees`, {
+        name: name,
+      })
       .catch((err) => {
         setErrorMessage(err.message)
       })
@@ -176,35 +179,23 @@ function ReactionAssigneeForm({
 
 function ReactionAssigneeComponent({
   reactionAssignee,
-  onDelete
+  onDelete,
 }: {
-  reactionAssignee: ReactionAssignee,
+  reactionAssignee: ReactionAssignee
   onDelete: () => void
 }) {
-  const token = useContext(TokenContext)
+  const client = useApiClient()
   const deleteOnClick = useCallback(async () => {
-    await client
-    .delete(
-      `/api/reaction_assignees/${reactionAssignee.id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
+    await client.delete(`/api/reaction_assignees/${reactionAssignee.id}`)
 
     onDelete()
-
   }, [reactionAssignee.id])
 
   return (
     <span key={reactionAssignee.id}>
       {reactionAssignee.name}
 
-      <span
-        className="mx-2 cursor-pointer underline"
-        onClick={deleteOnClick}
-      >
+      <span className="mx-2 cursor-pointer underline" onClick={deleteOnClick}>
         delete
       </span>
     </span>
@@ -282,7 +273,11 @@ function Content() {
                 <div>
                   {reaction.reaction_assignees.map((reactionAssignee) => {
                     return (
-                      <ReactionAssigneeComponent key={reactionAssignee.id} reactionAssignee={reactionAssignee} onDelete={mutateReactions} />
+                      <ReactionAssigneeComponent
+                        key={reactionAssignee.id}
+                        reactionAssignee={reactionAssignee}
+                        onDelete={mutateReactions}
+                      />
                     )
                   })}
                   <ReactionAssigneeForm
