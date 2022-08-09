@@ -4,7 +4,7 @@ use std::{env, net::TcpListener};
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::Key, dev::Server, middleware::Logger, web, App, HttpServer};
 use handlebars::Handlebars;
-use handlers::{api, auth, hello, root, webhook};
+use handlers::{api, github_auth, hello, root, slack_auth, webhook};
 use sqlx::SqlitePool;
 
 mod github;
@@ -38,10 +38,15 @@ pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std:
             ))
             .route("/", web::get().to(root::get_index))
             .route("/hello", web::get().to(hello::get_hello))
-            .route("/auth/slack", web::get().to(auth::get_slack_auth))
+            .route("/auth/slack", web::get().to(slack_auth::get_slack_auth))
             .route(
                 "/auth/slack/callback",
-                web::get().to(auth::slack_auth_callback),
+                web::get().to(slack_auth::slack_auth_callback),
+            )
+            .route("/auth/github", web::get().to(github_auth::get_github_auth))
+            .route(
+                "/auth/github/callback",
+                web::get().to(github_auth::github_auth_callback),
             )
             .route(
                 "/webhook/slack/events",

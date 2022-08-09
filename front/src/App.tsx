@@ -228,6 +228,7 @@ function Content() {
 
   return (
     <div>
+      <a href="/auth/github">Login with GitHub</a>
       {user && (
         <div>
           <h2>user</h2>

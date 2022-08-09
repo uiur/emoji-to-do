@@ -1,4 +1,4 @@
-use sqlx::SqlitePool;
+use sqlx::{Sqlite, SqlitePool};
 
 use super::{reaction::Reaction, Error};
 
@@ -7,6 +7,7 @@ pub struct Team {
     pub id: i64,
     pub name: String,
     pub slack_team_id: String,
+    pub github_installation_id: Option<i64>,
 }
 
 impl Team {
@@ -17,7 +18,7 @@ impl Team {
         sqlx::query_as!(
             Team,
             "
-      select id, name, slack_team_id from teams where slack_team_id = ? limit 1
+      select id, name, slack_team_id, github_installation_id from teams where slack_team_id = ? limit 1
     ",
             slack_team_id
         )
@@ -29,7 +30,7 @@ impl Team {
         sqlx::query_as!(
             Team,
             "
-      select id, name, slack_team_id from teams where id = ? limit 1
+      select id, name, slack_team_id, github_installation_id from teams where id = ? limit 1
     ",
             id
         )
@@ -55,6 +56,27 @@ impl Team {
         .await?;
 
         Ok(result.last_insert_rowid())
+    }
+
+    pub async fn update(
+        &self,
+        connection: &SqlitePool,
+        name: &str,
+        github_installation_id: i64,
+    ) -> Result<(), Error> {
+        let result = sqlx::query!(
+            "
+            update teams set (name, github_installation_id) = (?, ?)
+            where id = ?
+        ",
+            name,
+            github_installation_id,
+            self.id
+        )
+        .execute(connection)
+        .await?;
+
+        Ok(())
     }
 
     pub async fn reactions(&self, connection: &SqlitePool) -> Result<Vec<Reaction>, sqlx::Error> {

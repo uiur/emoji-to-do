@@ -1,6 +1,9 @@
 use std::{collections::HashMap, env};
 
 use serde::Deserialize;
+use serde::Serialize;
+use serde_json::json;
+use serde_json::Value;
 
 #[derive(Deserialize)]
 pub struct Issue {
@@ -60,4 +63,33 @@ pub async fn create_issue(
 
     Ok(issue)
     // Err(GithubClientError::ApiError.into())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListUserInstallationResponse {
+    installations: Vec<Installation>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Installation {
+    pub id: i64,
+}
+
+pub async fn list_user_installations(
+    token: &str,
+) -> Result<Vec<Installation>, Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .get("https://api.github.com/user/installations")
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/vnd.github.v3+json")
+        .header("User-Agent", "uiur/emoji-to-do")
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|_e| GithubClientError::ApiError)?;
+
+    log::debug!("{:#?}", resp);
+    let result = resp.json::<ListUserInstallationResponse>().await?;
+    Ok(result.installations)
 }
