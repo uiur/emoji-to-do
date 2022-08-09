@@ -19,7 +19,7 @@ struct ReactionResponse {
 }
 
 pub async fn get_reactions(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     path: web::Path<(i64,)>,
     req: HttpRequest,
 ) -> actix_web::Result<impl Responder> {
@@ -70,7 +70,7 @@ pub struct CreateReactionRequestBody {
 }
 
 pub async fn create_reaction(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     path: web::Path<(i64,)>,
     req: HttpRequest,
     body: web::Json<CreateReactionRequestBody>,
@@ -105,7 +105,7 @@ pub async fn create_reaction(
 pub type UpdateReactionRequestBody = CreateReactionRequestBody;
 
 pub async fn put_reaction(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     path: web::Path<(i64,)>,
     req: HttpRequest,
     body: web::Json<UpdateReactionRequestBody>,
@@ -136,7 +136,7 @@ pub async fn put_reaction(
 }
 
 pub async fn destroy_reaction(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     path: web::Path<(i64,)>,
     req: HttpRequest,
 ) -> actix_web::Result<impl Responder> {

@@ -14,7 +14,7 @@ struct TeamResponse {
 }
 
 pub async fn get_team(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     req: HttpRequest,
 ) -> actix_web::Result<impl Responder> {
     let user = get_current_user(connection.as_ref(), &req)

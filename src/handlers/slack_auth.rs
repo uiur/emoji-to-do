@@ -79,7 +79,7 @@ pub struct CallbackQuery {
 }
 
 pub async fn slack_auth_callback(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     query: Query<CallbackQuery>,
     session: Session,
 ) -> actix_web::Result<impl Responder> {

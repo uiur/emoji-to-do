@@ -10,6 +10,7 @@ use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl,
 };
+use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
@@ -72,12 +73,13 @@ pub struct CallbackQuery {
 }
 
 pub async fn github_auth_callback(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     query: Query<CallbackQuery>,
     session: Session,
     req: HttpRequest,
 ) -> actix_web::Result<impl Responder> {
     let client = create_oauth_client();
+    let connection = connection.get_database_backend();
     log::info!("{}", &query.code);
 
     let token_result = client

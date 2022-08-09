@@ -5,15 +5,20 @@ use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::Key, dev::Server, middleware::Logger, web, App, HttpServer};
 use handlebars::Handlebars;
 use handlers::{api, github_auth, hello, root, slack_auth, webhook};
+use sea_orm::DatabaseConnection;
 use sqlx::SqlitePool;
 
+pub mod entities;
 mod github;
 mod handlers;
 pub mod models;
 mod slack;
 pub mod token;
 
-pub fn run(listener: TcpListener, connection: SqlitePool) -> Result<Server, std::io::Error> {
+pub fn run(
+    listener: TcpListener,
+    connection: DatabaseConnection,
+) -> Result<Server, std::io::Error> {
     let mut handlebars = Handlebars::new();
     handlebars
         .register_templates_directory(".html", "./static/templates")

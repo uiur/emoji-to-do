@@ -19,7 +19,7 @@ pub struct CreateReactionAssigneeRequestBody {
 }
 
 pub async fn create_reaction_assignee(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     path: web::Path<(i64,)>,
     req: HttpRequest,
     body: web::Json<CreateReactionAssigneeRequestBody>,
@@ -53,7 +53,7 @@ pub async fn create_reaction_assignee(
 }
 
 pub async fn destroy_reaction_assignee(
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
     path: web::Path<(i64,)>,
     req: HttpRequest,
 ) -> actix_web::Result<impl Responder> {

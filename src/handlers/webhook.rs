@@ -1,14 +1,15 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{error::ErrorInternalServerError, web, HttpRequest, HttpResponse, Responder};
 use futures::{future::try_join_all, TryFutureExt};
 
 use regex::{Captures, Regex};
 
+use sea_orm::*;
 use sqlx::SqlitePool;
 
 use crate::{
-    github,
+    entities, github,
     models::{reaction::Reaction, team::Team},
     slack::{self, SlackEvent, SlackItem, SlackRequest},
 };
@@ -16,7 +17,7 @@ use crate::{
 pub async fn create_slack_events(
     data: web::Json<SlackRequest>,
     req: HttpRequest,
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
 ) -> actix_web::Result<impl Responder> {
     // Ignore duplicated requests due to http timeout
     if let Some(header_value) = req.headers().get("X-Slack-Retry-Reason") {
@@ -54,19 +55,27 @@ async fn handle_reaction_added(
     user: String,
     reaction: String,
     item: SlackItem,
-    connection: web::Data<SqlitePool>,
+    connection: web::Data<sea_orm::DatabaseConnection>,
 ) -> actix_web::Result<HttpResponse> {
     let reactioner = slack::get_user_info(&user).await?;
     let team_id = reactioner.team_id;
 
-    let team = Team::find(connection.as_ref(), &team_id)
+    let team = entities::prelude::Team::find()
+        .filter(entities::team::Column::SlackTeamId.eq(team_id.as_str()))
+        .one(connection.as_ref())
         .await
-        .map_err(actix_web::error::ErrorInternalServerError)?
-        .ok_or(actix_web::error::ErrorNotFound("team is not found"))?;
+        .map_err(ErrorInternalServerError)?.unwrap();
 
-    let record = Reaction::find_by_team_id_and_name(&connection, team.id, &reaction)
+    // let team = Team::find(&connection, &team_id)
+    //     .await
+    //     .map_err(actix_web::error::ErrorInternalServerError)?
+    //     .ok_or(actix_web::error::ErrorNotFound("team is not found"))?;
+
+    let record: Option<_> = entities::prelude::Reaction::find()
+        .filter(entities::team::Column::.eq(team.id))
+        .one(connection.as_ref())
         .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
+        .map_err(ErrorInternalServerError)?;
 
     if let Some(reaction_record) = record {
         log::info!("{:#?}", reaction_record);
@@ -110,7 +119,8 @@ async fn handle_reaction_added(
                 .join("\n");
 
             let title: String = messages
-                .first().map(|m| String::from(&m.text))
+                .first()
+                .map(|m| String::from(&m.text))
                 .unwrap_or_default();
 
             let title = humanize_slack_formatted_text(&title, &slack_user_map);
@@ -141,10 +151,7 @@ fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, St
     re.replace_all(&text, {
         |caps: &Captures| {
             if let Some(inner) = caps.name("a").map(|m| m.as_str()) {
-                match caps
-                    .name("mark").map(|m| m.as_str())
-                    .unwrap_or_default()
-                {
+                match caps.name("mark").map(|m| m.as_str()).unwrap_or_default() {
                     "@" => {
                         let content = match slack_user_map.get(inner) {
                             Some(s) => s,
@@ -175,8 +182,7 @@ fn humanize_slack_formatted_text(text: &str, slack_user_map: &HashMap<String, St
                     _ => {
                         format!(
                             "{}{}",
-                            caps.name("mark").map(|m| m.as_str())
-                                .unwrap_or_default(),
+                            caps.name("mark").map(|m| m.as_str()).unwrap_or_default(),
                             inner
                         )
                     }
@@ -213,8 +219,6 @@ async fn handle_app_mention(
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
-    
 
     use super::{humanize_slack_formatted_text, remove_head_mention};
 
