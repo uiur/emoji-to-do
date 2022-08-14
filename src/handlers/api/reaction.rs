@@ -6,7 +6,6 @@ use actix_web::{
 use sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel, ModelTrait, Set};
 use serde::{Deserialize, Serialize};
 
-
 use crate::entities;
 
 use super::get_current_user;

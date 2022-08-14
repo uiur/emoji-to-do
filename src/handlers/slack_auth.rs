@@ -12,8 +12,7 @@ use oauth2::{
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 
-
-use crate::{entities};
+use crate::entities;
 
 type OauthClient = oauth2::Client<
     oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,

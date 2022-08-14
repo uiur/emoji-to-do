@@ -1,11 +1,7 @@
-
-
-
 use emoji_to_do::entities;
-use hmac::{Mac};
+use hmac::Mac;
 
 use sea_orm::{EntityTrait, Set};
-
 
 mod test;
 

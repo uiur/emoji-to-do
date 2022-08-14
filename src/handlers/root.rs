@@ -3,7 +3,6 @@ use actix_web::{web, HttpResponse, Responder};
 use handlebars::Handlebars;
 use serde_json::json;
 
-
 pub async fn get_index(
     _connection: web::Data<sea_orm::DatabaseConnection>,
     hb: web::Data<Handlebars<'_>>,

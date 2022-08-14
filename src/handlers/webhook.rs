@@ -7,7 +7,6 @@ use regex::{Captures, Regex};
 
 use sea_orm::*;
 
-
 use crate::{
     entities, github,
     slack::{self, SlackEvent, SlackItem, SlackRequest},

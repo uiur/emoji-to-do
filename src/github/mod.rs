@@ -1,9 +1,6 @@
 use std::{collections::HashMap, env};
 
-use serde::Deserialize;
-use serde::Serialize;
-
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct Issue {

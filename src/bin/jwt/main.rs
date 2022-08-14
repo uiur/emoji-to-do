@@ -1,6 +1,6 @@
 use std::{env, fs::File, io::Read, time::SystemTime};
 
-use hmac::{Mac};
+use hmac::Mac;
 use jwt::{PKeyWithDigest, SignWithKey};
 use openssl::{hash::MessageDigest, pkey::PKey};
 use serde_json::json;

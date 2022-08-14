@@ -5,7 +5,6 @@ use emoji_to_do::run;
 
 use sea_orm::Database;
 
-
 mod entities;
 mod github;
 mod handlers;

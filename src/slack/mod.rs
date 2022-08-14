@@ -1,7 +1,6 @@
 use std::{collections::HashMap, env};
 
-
-use log::{error};
+use log::error;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]

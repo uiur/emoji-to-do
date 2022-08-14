@@ -1,9 +1,8 @@
 #![feature(assert_matches)]
-use std::{assert_matches::assert_matches};
-
+use std::assert_matches::assert_matches;
 
 use emoji_to_do::entities;
-use hmac::{Mac};
+use hmac::Mac;
 
 use sea_orm::{EntityTrait, Set};
 use serde::Deserialize;

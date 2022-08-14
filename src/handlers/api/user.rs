@@ -1,12 +1,4 @@
-
-
-
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
-
-
-
-
-
 
 use super::get_current_user;
 

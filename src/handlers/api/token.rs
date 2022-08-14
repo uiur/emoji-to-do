@@ -1,9 +1,6 @@
-
-
 use actix_session::Session;
 use actix_web::{HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Debug, Serialize, Deserialize)]
 struct TokenResponse {

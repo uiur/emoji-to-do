@@ -1,8 +1,7 @@
 use actix_web::HttpRequest;
 use hmac::{Hmac, Mac};
 use jwt::VerifyWithKey;
-use sea_orm::DatabaseConnection;
-use sea_orm::EntityTrait;
+use sea_orm::{DatabaseConnection, EntityTrait};
 use serde::{Deserialize, Serialize};
 
 use crate::entities;
