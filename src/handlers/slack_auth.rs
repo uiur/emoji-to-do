@@ -13,7 +13,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::{entities, models::user::User, slack};
+use crate::{entities, slack};
 
 type OauthClient = oauth2::Client<
     oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,

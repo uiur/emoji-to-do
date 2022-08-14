@@ -16,11 +16,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::{
-    entities, github,
-    handlers::api::get_current_user,
-    models::{team::Team, user::User},
-};
+use crate::{entities, github, handlers::api::get_current_user};
 
 type OauthClient = oauth2::Client<
     oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,

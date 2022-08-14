@@ -2,10 +2,7 @@
 use std::{assert_matches::assert_matches, collections::HashMap, env, option};
 
 use actix_web::cookie::{Cookie, CookieJar};
-use emoji_to_do::{
-    entities,
-    models::{reaction::Reaction, reaction_assignee::ReactionAssignee, team::Team, user::User},
-};
+use emoji_to_do::entities;
 use hmac::{Hmac, Mac};
 use jwt::{token::signed, SignWithKey};
 use openssl::ssl::ConnectConfiguration;

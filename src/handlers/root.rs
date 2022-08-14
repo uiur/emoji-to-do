@@ -4,8 +4,6 @@ use handlebars::Handlebars;
 use serde_json::json;
 use sqlx::SqlitePool;
 
-use crate::models::user::User;
-
 pub async fn get_index(
     connection: web::Data<sea_orm::DatabaseConnection>,
     hb: web::Data<Handlebars<'_>>,

@@ -9,7 +9,6 @@ use sqlx::{database, sqlite::SqlitePoolOptions};
 mod entities;
 mod github;
 mod handlers;
-mod models;
 mod slack;
 mod token;
 

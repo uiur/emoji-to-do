@@ -5,7 +5,7 @@ use actix_web::{
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Serialize;
 
-use crate::{entities, models::team::Team};
+use crate::entities;
 
 use super::get_current_user;
 

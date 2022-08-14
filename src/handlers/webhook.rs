@@ -10,7 +10,6 @@ use sqlx::SqlitePool;
 
 use crate::{
     entities, github,
-    models::{reaction::Reaction, team::Team},
     slack::{self, SlackEvent, SlackItem, SlackRequest},
 };
 

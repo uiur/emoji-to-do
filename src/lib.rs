@@ -10,7 +10,6 @@ use sea_orm::DatabaseConnection;
 pub mod entities;
 mod github;
 mod handlers;
-pub mod models;
 mod slack;
 pub mod token;
 

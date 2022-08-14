@@ -1,10 +1,8 @@
 use std::net::TcpListener;
 
-use actix_web::web::Data;
-use emoji_to_do::{entities, models::user::User};
-use openssl::ssl::ConnectConfiguration;
+use emoji_to_do::entities;
 use sea_orm::{DatabaseConnection, EntityTrait, Set, SqlxSqliteConnector};
-use sqlx::{sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
+use sqlx::sqlite::SqlitePoolOptions;
 
 async fn setup_db() -> DatabaseConnection {
     let connection = SqlitePoolOptions::new()
