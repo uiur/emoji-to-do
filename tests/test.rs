@@ -2,7 +2,8 @@ use std::net::TcpListener;
 
 use actix_web::web::Data;
 use emoji_to_do::{entities, models::user::User};
-use sea_orm::{DatabaseConnection, EntityTrait, Set};
+use openssl::ssl::ConnectConfiguration;
+use sea_orm::{DatabaseConnection, EntityTrait, Set, SqlxSqliteConnector};
 use sqlx::{sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 
 async fn setup_db() -> DatabaseConnection {
@@ -17,9 +18,7 @@ async fn setup_db() -> DatabaseConnection {
         .await
         .expect("failed to migrate database");
 
-    let connection = sea_orm::Database::connect("sqlite::memory:")
-        .await
-        .expect("failed to open database");
+    let connection = SqlxSqliteConnector::from_sqlx_sqlite_pool(connection);
 
     connection
 }

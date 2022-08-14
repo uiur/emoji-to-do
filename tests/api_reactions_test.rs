@@ -77,7 +77,7 @@ async fn test_api_reactions_when_user_does_not_belong_to_team(
     let user = create_user(&connection).await?;
     let team_id = entities::team::Entity::insert(entities::team::ActiveModel {
         name: Set("TEAM EMOJI".to_owned()),
-        slack_team_id: Set(user.slack_team_id),
+        slack_team_id: Set("FOOBAR".to_owned()),
         ..Default::default()
     })
     .exec(&connection)
