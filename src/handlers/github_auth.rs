@@ -7,14 +7,14 @@ use actix_web::{
     HttpRequest, HttpResponse, Responder,
 };
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
+    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
     TokenResponse, TokenUrl,
 };
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+
 
 use crate::{entities, github, handlers::api::get_current_user};
 
@@ -73,7 +73,7 @@ pub struct CallbackQuery {
 pub async fn github_auth_callback(
     connection: web::Data<sea_orm::DatabaseConnection>,
     query: Query<CallbackQuery>,
-    session: Session,
+    _session: Session,
     req: HttpRequest,
 ) -> actix_web::Result<impl Responder> {
     let client = create_oauth_client();

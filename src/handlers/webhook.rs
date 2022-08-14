@@ -6,7 +6,7 @@ use futures::{future::try_join_all, TryFutureExt};
 use regex::{Captures, Regex};
 
 use sea_orm::*;
-use sqlx::SqlitePool;
+
 
 use crate::{
     entities, github,
@@ -52,7 +52,7 @@ pub async fn create_slack_events(
 
 async fn handle_reaction_added(
     user: String,
-    reaction: String,
+    _reaction: String,
     item: SlackItem,
     connection: web::Data<sea_orm::DatabaseConnection>,
 ) -> actix_web::Result<HttpResponse> {

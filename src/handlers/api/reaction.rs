@@ -1,11 +1,11 @@
 use actix_web::{
-    error::{ErrorForbidden, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
-    web, Error, HttpRequest, HttpResponse, Responder,
+    error::{ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
+    web, HttpRequest, HttpResponse, Responder,
 };
-use futures::future::try_join_all;
+
 use sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel, ModelTrait, Set};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+
 
 use crate::entities;
 

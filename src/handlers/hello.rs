@@ -1,4 +1,4 @@
-use actix_web::{error::ErrorInternalServerError, web, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 use sea_orm::{ConnectionTrait, DatabaseBackend, Statement};
 
 pub async fn get_hello(connection: web::Data<sea_orm::DatabaseConnection>) -> impl Responder {

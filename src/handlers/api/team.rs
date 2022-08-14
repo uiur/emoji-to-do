@@ -1,6 +1,6 @@
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
-    web, Error, HttpRequest, HttpResponse, Responder,
+    web, HttpRequest, HttpResponse, Responder,
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Serialize;

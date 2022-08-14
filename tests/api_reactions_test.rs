@@ -1,15 +1,15 @@
 #![feature(assert_matches)]
-use std::{assert_matches::assert_matches, collections::HashMap, env, option};
+use std::{assert_matches::assert_matches};
 
-use actix_web::cookie::{Cookie, CookieJar};
+
 use emoji_to_do::entities;
-use hmac::{Hmac, Mac};
-use jwt::{token::signed, SignWithKey};
-use openssl::ssl::ConnectConfiguration;
+use hmac::{Mac};
+
+
 use sea_orm::{EntityTrait, Set};
 use serde::Deserialize;
 use serde_json::json;
-use sqlx::SqlitePool;
+
 use test::{create_api_client, create_user};
 
 mod test;
@@ -38,7 +38,7 @@ async fn test_api_reactions() -> Result<(), Box<dyn std::error::Error>> {
     .await?
     .last_insert_id;
 
-    let reaction_assignee_id =
+    let _reaction_assignee_id =
         entities::reaction_assignee::Entity::insert(entities::reaction_assignee::ActiveModel {
             reaction_id: Set(reaction_id),
             name: Set("uiur".to_owned()),
@@ -81,7 +81,7 @@ async fn test_api_reactions_when_user_does_not_belong_to_team(
     .await?
     .last_insert_id;
 
-    let reaction_id = entities::reaction::Entity::insert(entities::reaction::ActiveModel {
+    let _reaction_id = entities::reaction::Entity::insert(entities::reaction::ActiveModel {
         team_id: Set(team_id),
         name: Set("eyes".to_owned()),
         repo: Set("uiur/sandbox".to_owned()),

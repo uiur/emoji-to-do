@@ -1,14 +1,14 @@
 #![feature(assert_matches)]
-use std::{assert_matches::assert_matches, collections::HashMap, env, option};
+use std::{assert_matches::assert_matches};
 
-use actix_web::cookie::{Cookie, CookieJar};
+
 use emoji_to_do::entities;
-use hmac::{Hmac, Mac};
-use jwt::{token::signed, SignWithKey};
+use hmac::{Mac};
+
 use sea_orm::{EntityTrait, Set};
 use serde::Deserialize;
 use serde_json::json;
-use sqlx::SqlitePool;
+
 use test::{create_api_client, create_user};
 
 mod test;

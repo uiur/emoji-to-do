@@ -4,7 +4,7 @@ use std::net::TcpListener;
 use emoji_to_do::run;
 
 use sea_orm::Database;
-use sqlx::{database, sqlite::SqlitePoolOptions};
+
 
 mod entities;
 mod github;
