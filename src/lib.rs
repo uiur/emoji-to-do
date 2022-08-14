@@ -6,7 +6,6 @@ use actix_web::{cookie::Key, dev::Server, middleware::Logger, web, App, HttpServ
 use handlebars::Handlebars;
 use handlers::{api, github_auth, hello, root, slack_auth, webhook};
 use sea_orm::DatabaseConnection;
-use sqlx::SqlitePool;
 
 pub mod entities;
 mod github;

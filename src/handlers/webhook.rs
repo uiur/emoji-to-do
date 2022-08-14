@@ -64,7 +64,8 @@ async fn handle_reaction_added(
         .filter(entities::team::Column::SlackTeamId.eq(team_id.as_str()))
         .one(connection.as_ref())
         .await
-        .map_err(ErrorInternalServerError)?.unwrap();
+        .map_err(ErrorInternalServerError)?
+        .unwrap();
 
     // let team = Team::find(&connection, &team_id)
     //     .await
@@ -72,7 +73,7 @@ async fn handle_reaction_added(
     //     .ok_or(actix_web::error::ErrorNotFound("team is not found"))?;
 
     let record: Option<_> = entities::prelude::Reaction::find()
-        .filter(entities::team::Column::.eq(team.id))
+        .filter(entities::team::Column::SlackTeamId.eq(team.id))
         .one(connection.as_ref())
         .await
         .map_err(ErrorInternalServerError)?;

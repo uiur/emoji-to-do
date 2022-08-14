@@ -8,8 +8,6 @@ use reqwest::Request;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::models::user::User;
-
 use super::get_current_user;
 
 pub async fn get_user(

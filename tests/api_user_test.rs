@@ -1,8 +1,10 @@
 use std::env;
 
 use actix_web::cookie::{Cookie, CookieJar};
+use emoji_to_do::entities;
 use hmac::{Hmac, Mac};
 use jwt::{token::signed, SignWithKey};
+use sea_orm::{EntityTrait, Set};
 use serde_json::json;
 
 mod test;
@@ -25,8 +27,15 @@ async fn test_api_user_when_authenticated() -> Result<(), Box<dyn std::error::Er
     let (host, connection) = test::spawn_app().await;
     let client = reqwest::Client::new();
 
-    let user_id =
-        emoji_to_do::models::user::User::create(&connection, "TEAM", "USER", "TOKEN").await?;
+    let user_id = entities::user::Entity::insert(entities::user::ActiveModel {
+        slack_team_id: Set("TEAM".to_owned()),
+        slack_user_id: Set("USER".to_owned()),
+        slack_token: Set("TOKEN".to_owned()),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
     let token = emoji_to_do::token::generate(user_id)?;
 
     let response = client

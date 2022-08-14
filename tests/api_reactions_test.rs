@@ -2,11 +2,14 @@
 use std::{assert_matches::assert_matches, collections::HashMap, env, option};
 
 use actix_web::cookie::{Cookie, CookieJar};
-use emoji_to_do::models::{
-    reaction::Reaction, reaction_assignee::ReactionAssignee, team::Team, user::User,
+use emoji_to_do::{
+    entities,
+    models::{reaction::Reaction, reaction_assignee::ReactionAssignee, team::Team, user::User},
 };
 use hmac::{Hmac, Mac};
 use jwt::{token::signed, SignWithKey};
+use openssl::ssl::ConnectConfiguration;
+use sea_orm::{EntityTrait, Set};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::SqlitePool;
@@ -19,10 +22,34 @@ async fn test_api_reactions() -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
 
     let user = create_user(&connection).await?;
-    let team_id = Team::create(&connection, "TEAM EMOJI", &user.slack_team_id).await?;
+    let team_id = entities::team::Entity::insert(entities::team::ActiveModel {
+        name: Set("TEAM EMOJI".to_owned()),
+        slack_team_id: Set(user.slack_team_id),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
 
-    let reaction_id = Reaction::create(&connection, team_id, "eyes", "uiur/sandbox").await?;
-    ReactionAssignee::create(&connection, reaction_id, "uiur").await?;
+    let reaction_id = entities::reaction::Entity::insert(entities::reaction::ActiveModel {
+        team_id: Set(team_id),
+        name: Set("eyes".to_owned()),
+        repo: Set("uiur/sandbox".to_owned()),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
+
+    let reaction_assignee_id =
+        entities::reaction_assignee::Entity::insert(entities::reaction_assignee::ActiveModel {
+            reaction_id: Set(reaction_id),
+            name: Set("uiur".to_owned()),
+            ..Default::default()
+        })
+        .exec(&connection)
+        .await?
+        .last_insert_id;
 
     let client = create_api_client(user.id)?;
     let response = client
@@ -48,16 +75,24 @@ async fn test_api_reactions_when_user_does_not_belong_to_team(
     let (host, connection) = test::spawn_app().await;
 
     let user = create_user(&connection).await?;
-    let team_id =
-        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", "TEAM2").await?;
+    let team_id = entities::team::Entity::insert(entities::team::ActiveModel {
+        name: Set("TEAM EMOJI".to_owned()),
+        slack_team_id: Set(user.slack_team_id),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
 
-    let reaction_id = emoji_to_do::models::reaction::Reaction::create(
-        &connection,
-        team_id,
-        "eyes",
-        "uiur/sandbox",
-    )
-    .await?;
+    let reaction_id = entities::reaction::Entity::insert(entities::reaction::ActiveModel {
+        team_id: Set(team_id),
+        name: Set("eyes".to_owned()),
+        repo: Set("uiur/sandbox".to_owned()),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
 
     let client = create_api_client(user.id)?;
 
@@ -74,7 +109,7 @@ async fn test_api_reactions_when_user_does_not_belong_to_team(
 
 #[derive(Deserialize)]
 struct CreateReactionResponse {
-    id: i64,
+    id: i32,
 }
 
 #[actix_rt::test]
@@ -82,9 +117,14 @@ async fn test_api_create_reaction() -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
 
     let user = create_user(&connection).await?;
-    let team_id =
-        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", &user.slack_team_id)
-            .await?;
+    let team_id = entities::team::Entity::insert(entities::team::ActiveModel {
+        name: Set("TEAM EMOJI".to_owned()),
+        slack_team_id: Set(user.slack_team_id),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
 
     let client = create_api_client(user.id)?;
     let response = client
@@ -98,8 +138,10 @@ async fn test_api_create_reaction() -> Result<(), Box<dyn std::error::Error>> {
 
     assert_eq!(response.status().as_u16(), 201);
     let json: CreateReactionResponse = response.json().await?;
-    let id: i64 = json.id;
-    let optional_reaction = Reaction::find(&connection, id).await?;
+    let id: i32 = json.id;
+    let optional_reaction = entities::prelude::Reaction::find_by_id(id)
+        .one(&connection)
+        .await?;
     assert_matches!(optional_reaction, Some(_));
 
     Ok(())
@@ -109,9 +151,24 @@ async fn test_api_create_reaction() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_api_update_reaction() -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
     let user = create_user(&connection).await?;
-    let team_id = Team::create(&connection, "team_name", &user.slack_team_id).await?;
+    let team_id = entities::team::Entity::insert(entities::team::ActiveModel {
+        name: Set("team_name".to_owned()),
+        slack_team_id: Set(user.slack_team_id),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
 
-    let reaction_id = Reaction::create(&connection, team_id, "eyes", "uiur/sandbox").await?;
+    let reaction_id = entities::reaction::Entity::insert(entities::reaction::ActiveModel {
+        team_id: Set(team_id),
+        name: Set("eyes".to_owned()),
+        repo: Set("uiur/sandbox".to_owned()),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
 
     let client = create_api_client(user.id)?;
     let response = client
@@ -126,7 +183,10 @@ async fn test_api_update_reaction() -> Result<(), Box<dyn std::error::Error>> {
 
     assert_eq!(response.status().as_u16(), 200);
 
-    let reaction = Reaction::find(&connection, reaction_id).await?.unwrap();
+    let reaction = entities::prelude::Reaction::find_by_id(reaction_id)
+        .one(&connection)
+        .await?
+        .unwrap();
     assert_eq!(reaction.repo, "uiur/sandbox2");
 
     Ok(())
@@ -136,9 +196,25 @@ async fn test_api_update_reaction() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_api_destroy_reaction() -> Result<(), Box<dyn std::error::Error>> {
     let (host, connection) = test::spawn_app().await;
     let user = create_user(&connection).await?;
-    let team_id = Team::create(&connection, "team_name", &user.slack_team_id).await?;
+    let team_id = entities::team::Entity::insert(entities::team::ActiveModel {
+        name: Set("team_name".to_owned()),
+        slack_team_id: Set(user.slack_team_id),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
 
-    let reaction_id = Reaction::create(&connection, team_id, "eyes", "uiur/sandbox").await?;
+    let reaction_id = entities::reaction::Entity::insert(entities::reaction::ActiveModel {
+        team_id: Set(team_id),
+        name: Set("eyes".to_owned()),
+        repo: Set("uiur/sandbox".to_owned()),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
+
     let client = create_api_client(user.id)?;
     let response = client
         .delete(format!("{}/api/reactions/{}", host, reaction_id))
@@ -148,7 +224,9 @@ async fn test_api_destroy_reaction() -> Result<(), Box<dyn std::error::Error>> {
 
     assert_eq!(response.status().as_u16(), 204);
 
-    let optional_reaction = Reaction::find(&connection, reaction_id).await?;
+    let optional_reaction = entities::prelude::Reaction::find_by_id(reaction_id)
+        .one(&connection)
+        .await?;
     assert_matches!(optional_reaction, None);
 
     Ok(())

@@ -12,7 +12,7 @@ struct TokenResponse {
 
 pub async fn get_token(session: Session) -> actix_web::Result<impl Responder> {
     let optional_user_id = session
-        .get::<i64>("user_id")
+        .get::<i32>("user_id")
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     match optional_user_id {

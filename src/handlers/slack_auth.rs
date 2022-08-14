@@ -9,10 +9,11 @@ use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl,
 };
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::models::user::User;
+use crate::{entities, models::user::User, slack};
 
 type OauthClient = oauth2::Client<
     oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,
@@ -99,7 +100,9 @@ pub async fn slack_auth_callback(
     let slack_team_id = extra_fields.team.id.clone();
     let slack_user_id = extra_fields.authed_user.id.clone();
 
-    let option_user = User::find_by_slack_user_id(&connection, &slack_user_id)
+    let option_user = entities::prelude::User::find()
+        .filter(entities::user::Column::SlackUserId.eq(slack_user_id.clone()))
+        .one(connection.as_ref())
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
@@ -108,11 +111,18 @@ pub async fn slack_auth_callback(
             session.insert("user_id", found_user.id);
         }
         None => {
-            let user_id = User::create(&connection, &slack_team_id, &slack_user_id, token.secret())
+            let active_model = entities::user::ActiveModel {
+                slack_team_id: Set(slack_team_id),
+                slack_user_id: Set(slack_user_id),
+                slack_token: Set(token.secret().clone()),
+                ..Default::default()
+            };
+            let res = entities::user::Entity::insert(active_model)
+                .exec(connection.as_ref())
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?;
 
-            session.insert("user_id", user_id);
+            session.insert("user_id", res.last_insert_id);
         }
     }
 

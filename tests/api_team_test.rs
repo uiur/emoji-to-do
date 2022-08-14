@@ -1,8 +1,10 @@
 use std::env;
 
 use actix_web::cookie::{Cookie, CookieJar};
+use emoji_to_do::entities;
 use hmac::{Hmac, Mac};
 use jwt::{token::signed, SignWithKey};
+use sea_orm::{EntityTrait, Set};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -10,7 +12,7 @@ mod test;
 
 #[derive(Deserialize)]
 struct AssertedTeamResponse {
-    id: i64,
+    id: i32,
     name: String,
     slack_team_id: String,
 }
@@ -20,11 +22,30 @@ async fn test_api_team_when_authenticated() -> Result<(), Box<dyn std::error::Er
     let (host, connection) = test::spawn_app().await;
     let client = reqwest::Client::new();
 
-    let user_id =
-        emoji_to_do::models::user::User::create(&connection, "TEAM", "USER", "TOKEN").await?;
+    let user_id = entities::user::Entity::insert(entities::user::ActiveModel {
+        slack_team_id: Set("TEAM".to_owned()),
+        slack_user_id: Set("USER".to_owned()),
+        slack_token: Set("TOKEN".to_owned()),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
+
     let token = emoji_to_do::token::generate(user_id)?;
-    let team_id =
-        emoji_to_do::models::team::Team::create(&connection, "TEAM EMOJI", "TEAM").await?;
+    let user = entities::prelude::User::find_by_id(user_id)
+        .one(&connection)
+        .await?
+        .expect("user is not found");
+
+    let team_id = entities::team::Entity::insert(entities::team::ActiveModel {
+        name: Set("TEAM EMOJI".to_owned()),
+        slack_team_id: Set(user.slack_team_id),
+        ..Default::default()
+    })
+    .exec(&connection)
+    .await?
+    .last_insert_id;
 
     let response = client
         .get(format!("{}/api/team", host))

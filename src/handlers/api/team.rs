@@ -1,14 +1,17 @@
-use actix_web::{error::ErrorNotFound, web, Error, HttpRequest, HttpResponse, Responder};
+use actix_web::{
+    error::{ErrorInternalServerError, ErrorNotFound},
+    web, Error, HttpRequest, HttpResponse, Responder,
+};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Serialize;
-use sqlx::SqlitePool;
 
-use crate::models::team::Team;
+use crate::{entities, models::team::Team};
 
 use super::get_current_user;
 
 #[derive(Serialize)]
 struct TeamResponse {
-    id: i64,
+    id: i32,
     name: String,
     slack_team_id: String,
 }
@@ -21,10 +24,12 @@ pub async fn get_team(
         .await
         .ok_or_else(|| ErrorNotFound("user is not found"))?;
 
-    let team = Team::find(connection.as_ref(), &user.slack_team_id)
+    let team = entities::prelude::Team::find()
+        .filter(entities::team::Column::SlackTeamId.eq(user.slack_team_id.as_str()))
+        .one(connection.as_ref())
         .await
-        .map_err(ErrorNotFound)?
-        .ok_or_else(|| ErrorNotFound("user is not found"))?;
+        .map_err(ErrorInternalServerError)?
+        .ok_or_else(|| ErrorNotFound("team is not found"))?;
 
     let team_response = TeamResponse {
         id: team.id,

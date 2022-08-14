@@ -2,7 +2,7 @@ use std::env;
 
 use actix_session::Session;
 use actix_web::{
-    error::{ErrorInternalServerError, ErrorUnauthorized},
+    error::{ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
     web::{self, Query},
     HttpRequest, HttpResponse, Responder,
 };
@@ -10,12 +10,14 @@ use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl,
 };
-use sea_orm::ConnectionTrait;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
+};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use crate::{
-    github,
+    entities, github,
     handlers::api::get_current_user,
     models::{team::Team, user::User},
 };
@@ -79,7 +81,6 @@ pub async fn github_auth_callback(
     req: HttpRequest,
 ) -> actix_web::Result<impl Responder> {
     let client = create_oauth_client();
-    let connection = connection.get_database_backend();
     log::info!("{}", &query.code);
 
     let token_result = client
@@ -117,17 +118,23 @@ pub async fn github_auth_callback(
         .first()
         .ok_or_else(|| ErrorInternalServerError("installation is not found"))?;
 
-    let user = get_current_user(&connection, &req)
+    let user = get_current_user(connection.as_ref(), &req)
         .await
         .ok_or_else(|| ErrorUnauthorized(""))?;
 
-    let team = Team::find(&connection, &user.slack_team_id)
+    let team = entities::prelude::Team::find()
+        .filter(entities::team::Column::SlackTeamId.eq(user.slack_team_id))
+        .one(connection.as_ref())
         .await
         .map_err(ErrorInternalServerError)?
-        .ok_or_else(|| ErrorInternalServerError(""))?;
+        .ok_or_else(|| ErrorNotFound("team is not found"))?;
 
-    team.update(&connection, &team.name, installation.id)
-        .await?;
+    let mut active_model = team.into_active_model();
+    active_model.github_installation_id = Set(Some(installation.id));
+    active_model
+        .save(connection.as_ref())
+        .await
+        .map_err(ErrorInternalServerError)?;
 
     Ok(HttpResponse::TemporaryRedirect()
         .insert_header(("Location", "/".to_string()))

@@ -72,7 +72,7 @@ pub struct ListUserInstallationResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Installation {
-    pub id: i64,
+    pub id: i32,
 }
 
 pub async fn list_user_installations(
