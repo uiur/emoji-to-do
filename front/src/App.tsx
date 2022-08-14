@@ -11,7 +11,9 @@ import './App.css'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
 
-const client = axios.create({})
+const client = axios.create({
+  baseURL: 'https://dev-api.emoji-to-do.com',
+})
 const TokenContext = createContext(null)
 interface User {
   id: number

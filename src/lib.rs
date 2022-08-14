@@ -1,8 +1,9 @@
 #![feature(assert_matches)]
 use std::{env, net::TcpListener};
 
+use actix_cors::Cors;
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::{cookie::Key, dev::Server, middleware::Logger, web, App, HttpServer};
+use actix_web::{cookie::Key, dev::Server, http, middleware::Logger, web, App, HttpServer};
 use handlebars::Handlebars;
 use handlers::{api, github_auth, hello, root, slack_auth, webhook};
 use sea_orm::DatabaseConnection;
@@ -29,6 +30,10 @@ pub fn run(
     let connection = web::Data::new(connection);
     let server = HttpServer::new(move || {
         let json_config = web::JsonConfig::default();
+        let cors = Cors::default()
+            .allowed_origin_fn(|origin, _req_head| origin.as_bytes().ends_with(b".emoji-to-do.com"))
+            .allow_any_method()
+            .allow_any_header();
 
         App::new()
             .app_data(json_config)
@@ -39,6 +44,7 @@ pub fn run(
                 CookieSessionStore::default(),
                 secret_key.clone(),
             ))
+            .wrap(cors)
             .route("/", web::get().to(root::get_index))
             .route("/hello", web::get().to(hello::get_hello))
             .route("/auth/slack", web::get().to(slack_auth::get_slack_auth))
