@@ -9,6 +9,7 @@ import {
 import logo from './logo.svg'
 import './App.css'
 import axios from 'axios'
+import { Link } from 'react-router-dom'
 
 const client = axios.create({})
 const TokenContext = createContext(null)
@@ -322,6 +323,10 @@ function App() {
       <h1 className="text-3xl font-bold underline">emoji-to-do</h1>
 
       {!token && <a href="/auth/slack">Login with Slack</a>}
+
+      <div>
+        <Link to="/login">Login</Link>
+      </div>
 
       <TokenContext.Provider value={token}>
         {token && <Content />}
