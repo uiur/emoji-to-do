@@ -9,6 +9,8 @@ import {
   Routes,
   Route,
 } from "react-router-dom";
+import SlackAuth from './routes/SlackAuth'
+import SlackAuthCallback from './routes/SlackAuthCallback'
 
 
 const root = ReactDOM.createRoot(
@@ -27,6 +29,8 @@ root.render(
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<App />} />
+      <Route path="/auth/slack" element={<SlackAuth />}/>
+      <Route path="/auth/slack/callback" element={<SlackAuthCallback />}/>
       <Route path="/login" element={<Login />}/>
     </Routes>
   </BrowserRouter>

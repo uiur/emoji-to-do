@@ -2,6 +2,7 @@ use std::env;
 
 use actix_session::Session;
 use actix_web::{
+    error::ErrorInternalServerError,
     web::{self, Query},
     HttpResponse, Responder,
 };
@@ -60,6 +61,11 @@ fn create_oauth_client() -> OauthClient {
     .set_redirect_uri(RedirectUrl::new(format!("{}/auth/slack/callback", &http_host)).unwrap())
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct GetSlackAuthResponse {
+    url: String,
+}
+
 pub async fn get_slack_auth() -> actix_web::Result<impl Responder> {
     let client = create_oauth_client();
 
@@ -68,14 +74,19 @@ pub async fn get_slack_auth() -> actix_web::Result<impl Responder> {
         .add_scope(Scope::new("users.profile:read".to_string()))
         .url();
 
-    Ok(HttpResponse::TemporaryRedirect()
-        .insert_header(("Location", auth_url.to_string()))
-        .finish())
+    Ok(HttpResponse::Ok().json(GetSlackAuthResponse {
+        url: auth_url.to_string(),
+    }))
 }
 
 #[derive(Deserialize)]
 pub struct CallbackQuery {
     code: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SlackAuthCallbackResponse {
+    token: String,
 }
 
 pub async fn slack_auth_callback(
@@ -108,6 +119,8 @@ pub async fn slack_auth_callback(
     match option_user {
         Some(found_user) => {
             session.insert("user_id", found_user.id);
+            let token = crate::token::generate(found_user.id).map_err(ErrorInternalServerError)?;
+            Ok(HttpResponse::Ok().json(SlackAuthCallbackResponse { token }))
         }
         None => {
             let active_model = entities::user::ActiveModel {
@@ -122,10 +135,10 @@ pub async fn slack_auth_callback(
                 .map_err(actix_web::error::ErrorInternalServerError)?;
 
             session.insert("user_id", res.last_insert_id);
+
+            let token =
+                crate::token::generate(res.last_insert_id).map_err(ErrorInternalServerError)?;
+            Ok(HttpResponse::Ok().json(SlackAuthCallbackResponse { token }))
         }
     }
-
-    Ok(HttpResponse::TemporaryRedirect()
-        .insert_header(("Location", "/".to_string()))
-        .finish())
 }

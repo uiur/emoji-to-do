@@ -324,7 +324,7 @@ function App() {
     <div className="container mx-auto">
       <h1 className="text-3xl font-bold underline">emoji-to-do</h1>
 
-      {!token && <a href="/auth/slack">Login with Slack</a>}
+      {!token && <Link to="/auth/slack">Login with Slack</Link>}
 
       <div>
         <Link to="/login">Login</Link>
