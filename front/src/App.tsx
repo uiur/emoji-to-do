@@ -1,4 +1,4 @@
-import useSWR, { mutate } from 'swr'
+import useSWR from 'swr'
 import {
   createContext,
   useCallback,
@@ -14,6 +14,7 @@ import client from './api/client'
 import { User } from './types/User'
 import { Team } from './types/Team'
 import { Reaction } from './types/Reaction'
+import { ReactionAssignee } from './types/ReactionAssignee'
 
 const fetch = async (url: string) => {
   const res = await client.get(url)
@@ -254,7 +255,12 @@ function Content() {
 }
 
 function App() {
-  const { data: user } = useSWR<User>('/api/user', fetch)
+  const { data: user, mutate } = useSWR<User>('/api/user', fetch)
+
+  const logoutOnClick = useCallback(async () => {
+    await client.delete('/api/session')
+    mutate()
+  }, [])
 
   return (
     <div className="container mx-auto">
@@ -267,6 +273,16 @@ function App() {
       </div>
 
       {user && <Content />}
+
+      <div>
+        {
+          user && (
+            <div className="cursor-pointer underline" onClick={logoutOnClick}>
+              Logout
+            </div>
+          )
+        }
+      </div>
     </div>
   )
 }

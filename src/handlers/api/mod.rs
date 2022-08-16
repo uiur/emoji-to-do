@@ -11,6 +11,7 @@ use self::user::get_user;
 
 pub mod reaction;
 pub mod reaction_assignee;
+pub mod session;
 pub mod team;
 pub mod token;
 pub mod user;

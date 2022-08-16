@@ -99,6 +99,7 @@ pub fn run(
                 "/api/reaction_assignees/{reaction_assignee_id}",
                 web::delete().to(api::reaction_assignee::destroy_reaction_assignee),
             )
+            .route("/api/session", web::delete().to(api::session::delete))
     })
     .listen(listener)?
     .run();
