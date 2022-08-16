@@ -10,10 +10,8 @@ import logo from './logo.svg'
 import './App.css'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
+import client from './api/client'
 
-const client = axios.create({
-  baseURL: 'https://dev-api.emoji-to-do.com',
-})
 const TokenContext = createContext(null)
 interface User {
   id: number
@@ -39,16 +37,8 @@ interface ReactionAssignee {
   name: string
 }
 
-const fetchWithToken = async (url: string, token: string | null) => {
-  if (!token) {
-    throw new Error('No token')
-  }
-
-  const res = await client.get(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+const fetch = async (url: string) => {
+  const res = await client.get(url)
 
   return res.data
 }
@@ -113,16 +103,6 @@ function ReactionForm({
   )
 }
 
-function useApiClient() {
-  const token = useContext(TokenContext)
-  const client = axios.create({
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  return client
-}
 
 function ReactionAssigneeForm({
   reaction,
@@ -133,7 +113,6 @@ function ReactionAssigneeForm({
 }) {
   const [name, setName] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const client = useApiClient()
   const onSubmit = useCallback(async () => {
     const res = await client
       .post(`/api/reactions/${reaction.id}/reaction_assignees`, {
@@ -187,7 +166,6 @@ function ReactionAssigneeComponent({
   reactionAssignee: ReactionAssignee
   onDelete: () => void
 }) {
-  const client = useApiClient()
   const deleteOnClick = useCallback(async () => {
     await client.delete(`/api/reaction_assignees/${reactionAssignee.id}`)
 
@@ -206,26 +184,17 @@ function ReactionAssigneeComponent({
 }
 
 function Content() {
-  const token = useContext(TokenContext)
-  const { data: user } = useSWR<User>('/api/user', (url) =>
-    fetchWithToken(url, token)
-  )
-  const { data: team } = useSWR<Team>('/api/team', (url) =>
-    fetchWithToken(url, token)
-  )
+  const { data: user } = useSWR<User>('/api/user', fetch)
+  const { data: team } = useSWR<Team>('/api/team', fetch)
   const { data: reactions, mutate: mutateReactions } = useSWR<Reaction[]>(
     team ? `/api/teams/${team.id}/reactions` : null,
-    (url) => fetchWithToken(url, token)
+    fetch
   )
 
   const deleteOnClick = async (reaction: Reaction) => {
     if (!confirm('Are you sure to delete this reaction?')) return
 
-    const res = await client.delete(`/api/reactions/${reaction.id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    const res = await client.delete(`/api/reactions/${reaction.id}`)
     mutateReactions()
   }
 
@@ -311,28 +280,19 @@ function Content() {
 }
 
 function App() {
-  const [token, setToken] = useState(null)
-
-  useEffect(() => {
-    ;(async () => {
-      const res = await client.get('/api/token')
-      setToken(res.data.token)
-    })()
-  }, [])
+  const { data: user } = useSWR<User>('/api/user', fetch)
 
   return (
     <div className="container mx-auto">
       <h1 className="text-3xl font-bold underline">emoji-to-do</h1>
 
-      {!token && <Link to="/auth/slack">Login with Slack</Link>}
+      {!user && <Link to="/auth/slack">Login with Slack</Link>}
 
       <div>
         <Link to="/login">Login</Link>
       </div>
 
-      <TokenContext.Provider value={token}>
-        {token && <Content />}
-      </TokenContext.Provider>
+      {user && <Content />}
     </div>
   )
 }

@@ -3,7 +3,13 @@ use std::{env, net::TcpListener};
 
 use actix_cors::Cors;
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::{cookie::Key, dev::Server, http, middleware::Logger, web, App, HttpServer};
+use actix_web::{
+    cookie::{self, Key},
+    dev::Server,
+    http,
+    middleware::Logger,
+    web, App, HttpServer,
+};
 use handlebars::Handlebars;
 use handlers::{api, github_auth, hello, root, slack_auth, webhook};
 use sea_orm::DatabaseConnection;
@@ -32,18 +38,23 @@ pub fn run(
         let json_config = web::JsonConfig::default();
         let cors = Cors::default()
             .allowed_origin_fn(|origin, _req_head| origin.as_bytes().ends_with(b".emoji-to-do.com"))
-            .allow_any_method()
-            .allow_any_header();
+            .supports_credentials()
+            .allowed_headers(vec![http::header::AUTHORIZATION])
+            .allow_any_method();
 
         App::new()
             .app_data(json_config)
             .app_data(connection.clone())
             .app_data(handlebars_ref.clone())
             .wrap(Logger::default())
-            .wrap(SessionMiddleware::new(
-                CookieSessionStore::default(),
-                secret_key.clone(),
-            ))
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
+                    .cookie_domain(Some("emoji-to-do.com".to_owned()))
+                    .cookie_secure(true)
+                    .cookie_http_only(true)
+                    .cookie_same_site(cookie::SameSite::None)
+                    .build(),
+            )
             .wrap(cors)
             .route("/", web::get().to(root::get_index))
             .route("/hello", web::get().to(hello::get_hello))
