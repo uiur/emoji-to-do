@@ -6,6 +6,7 @@ use actix_web::{
     web::{self, Query},
     HttpRequest, HttpResponse, Responder,
 };
+use log::debug;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, TokenResponse,
     TokenUrl,
@@ -52,14 +53,19 @@ fn create_oauth_client() -> OauthClient {
     .set_redirect_uri(RedirectUrl::new(format!("{}/auth/github/callback", &http_host)).unwrap())
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct GetGithubAuthResponse {
+    url: String,
+}
+
 pub async fn get_github_auth() -> actix_web::Result<impl Responder> {
     let client = create_oauth_client();
 
     let (auth_url, _csrf_token) = client.authorize_url(CsrfToken::new_random).url();
 
-    Ok(HttpResponse::TemporaryRedirect()
-        .insert_header(("Location", auth_url.to_string()))
-        .finish())
+    Ok(HttpResponse::Ok().json(GetGithubAuthResponse {
+        url: auth_url.to_string(),
+    }))
 }
 
 #[derive(Deserialize)]
@@ -74,7 +80,6 @@ pub async fn github_auth_callback(
     req: HttpRequest,
 ) -> actix_web::Result<impl Responder> {
     let client = create_oauth_client();
-    log::info!("{}", &query.code);
 
     let token_result = client
         .exchange_code(AuthorizationCode::new(query.code.clone()))
@@ -129,7 +134,5 @@ pub async fn github_auth_callback(
         .await
         .map_err(ErrorInternalServerError)?;
 
-    Ok(HttpResponse::TemporaryRedirect()
-        .insert_header(("Location", "/".to_string()))
-        .finish())
+    Ok(HttpResponse::Ok())
 }

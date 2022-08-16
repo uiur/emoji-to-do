@@ -172,7 +172,9 @@ function Content() {
 
   return (
     <div>
-      <a href="/auth/github">Login with GitHub</a>
+      { (team?.github_installation_id === null) && (
+        <a href="/auth/github">Login with GitHub</a>
+      )}
       {user && (
         <div>
           <h2>user</h2>

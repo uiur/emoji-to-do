@@ -14,6 +14,7 @@ struct TeamResponse {
     id: i32,
     name: String,
     slack_team_id: String,
+    github_installation_id: Option<i32>,
 }
 
 pub async fn get_team(
@@ -35,6 +36,7 @@ pub async fn get_team(
         id: team.id,
         name: team.name,
         slack_team_id: team.slack_team_id,
+        github_installation_id: team.github_installation_id,
     };
 
     Ok(HttpResponse::Ok().json(team_response))
