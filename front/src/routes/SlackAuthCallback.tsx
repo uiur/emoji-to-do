@@ -15,15 +15,11 @@ function SlackAuthCallback() {
         }
       })
       location.href = '/'
-      // const { url } = res.data
-      // location.href = url
     })()
 
   }, [])
   return (
-    <div className="container mx-auto">
-      <h1 className="text-3xl font-bold underline">emoji-to-do</h1>
-      <p>{ code }</p>
+    <div>
     </div>
   )
 }

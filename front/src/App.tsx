@@ -11,31 +11,9 @@ import './App.css'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
 import client from './api/client'
-
-const TokenContext = createContext(null)
-interface User {
-  id: number
-  slack_user_id: string
-  slack_team_id: string
-}
-
-interface Team {
-  id: number
-  name: string
-  slack_team_id: string
-}
-
-interface Reaction {
-  id: number
-  name: string
-  repo: string
-  reaction_assignees: ReactionAssignee[]
-}
-
-interface ReactionAssignee {
-  id: number
-  name: string
-}
+import { User } from './types/User'
+import { Team } from './types/Team'
+import { Reaction } from './types/Reaction'
 
 const fetch = async (url: string) => {
   const res = await client.get(url)
@@ -50,18 +28,12 @@ function ReactionForm({
   team: Team
   onSave: (reaction: Reaction) => void
 }) {
-  const token = useContext(TokenContext)
   const [name, setName] = useState('')
   const [repo, setRepo] = useState('')
   const onSubmit = useCallback(async () => {
     const res = await client.post(
       `/api/teams/${team.id}/reactions`,
       { name, repo },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
     )
     const reaction = res.data
     onSave(reaction)

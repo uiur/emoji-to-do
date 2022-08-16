@@ -11,10 +11,7 @@ function SlackAuth() {
 
   }, [])
   return (
-    <div className="container mx-auto">
-      <h1 className="text-3xl font-bold underline">emoji-to-do</h1>
-      <p>auth</p>
-    </div>
+    <div></div>
   )
 }
 export default SlackAuth
