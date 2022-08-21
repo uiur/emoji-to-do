@@ -1,8 +1,8 @@
 import { useEffect } from "react"
 import { useLocation } from "react-router-dom";
-import client from "../api/client"
+import { client } from "../api/client"
 
-function SlackAuthCallback() {
+export function SlackAuthCallback() {
   const { search } = useLocation();
   let query = new URLSearchParams(search)
   let code = query.get('code')
@@ -23,4 +23,3 @@ function SlackAuthCallback() {
     </div>
   )
 }
-export default SlackAuthCallback

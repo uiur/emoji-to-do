@@ -9,10 +9,13 @@ import {
   Routes,
   Route,
 } from "react-router-dom";
-import SlackAuth from './routes/SlackAuth'
-import SlackAuthCallback from './routes/SlackAuthCallback'
-import GithubAuth from './routes/GithubAuth'
-import GithubAuthCallback from './routes/GithubAuthCallback'
+import { SlackAuth } from './routes/SlackAuth'
+import { SlackAuthCallback } from './routes/SlackAuthCallback'
+import { GithubAuth } from './routes/GithubAuth'
+import { GithubAuthCallback } from './routes/GithubAuthCallback'
+import { Sandbox } from './routes/Sandbox'
+import { Swr } from './routes/sandbox/Swr'
+import { Form } from './routes/sandbox/Form'
 
 
 const root = ReactDOM.createRoot(
@@ -36,6 +39,8 @@ root.render(
       <Route path="/auth/github" element={<GithubAuth />}/>
       <Route path="/auth/github/callback" element={<GithubAuthCallback />}/>
       <Route path="/login" element={<Login />}/>
+      <Route path="/dev/sandbox/swr" element={<Swr />}/>
+      <Route path="/dev/sandbox/form" element={<Form />}/>
     </Routes>
   </BrowserRouter>
 );
