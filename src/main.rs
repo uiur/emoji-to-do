@@ -1,8 +1,9 @@
 #![feature(assert_matches)]
-use std::net::TcpListener;
+use std::{env, net::TcpListener};
 
 use emoji_to_do::run;
 
+use listenfd::ListenFd;
 use sea_orm::Database;
 
 mod entities;
@@ -21,6 +22,15 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("failed to open database");
 
-    let listener = TcpListener::bind("127.0.0.1:8080").expect("failed to bind");
+    let host = env::var("HOST").expect("HOST is not set in .env file");
+    let port = env::var("PORT").expect("PORT is not set in .env file");
+    let server_url = format!("{}:{}", host, port);
+
+    let mut listenfd = ListenFd::from_env();
+
+    let listener = match listenfd.take_tcp_listener(0)? {
+        Some(listener) => listener,
+        None => TcpListener::bind(server_url).expect("failed to bind"),
+    };
     run(listener, connection)?.await
 }

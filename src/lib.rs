@@ -39,8 +39,11 @@ pub fn run(
         let cors = Cors::default()
             .allowed_origin_fn(|origin, _req_head| origin.as_bytes().ends_with(b".emoji-to-do.com"))
             .supports_credentials()
-            .allowed_headers(vec![http::header::AUTHORIZATION])
-            .allow_any_method();
+            .allow_any_method()
+            .allowed_headers(vec![
+                http::header::AUTHORIZATION,
+                http::header::CONTENT_TYPE,
+            ]);
 
         App::new()
             .app_data(json_config)

@@ -16,6 +16,7 @@ import { GithubAuthCallback } from './routes/GithubAuthCallback'
 import { Swr } from './routes/sandbox/Swr'
 import { Form } from './routes/sandbox/Form'
 import { Settings } from './routes/Settings'
+import { EmojisNew } from './routes/emojis/EmojisNew'
 
 
 const root = ReactDOM.createRoot(
@@ -40,6 +41,8 @@ root.render(
       <Route path="/auth/github/callback" element={<GithubAuthCallback />}/>
       <Route path="/login" element={<Login />}/>
       <Route path="/settings" element={<Settings />}/>
+      <Route path="/emojis/new" element={<EmojisNew />}/>
+
 
       <Route path="/dev/sandbox/swr" element={<Swr />}/>
       <Route path="/dev/sandbox/form" element={<Form />}/>

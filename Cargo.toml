@@ -16,6 +16,7 @@ futures = "0.3.21"
 handlebars = { version = "4.3.1", features = ["dir_source"] }
 hmac = "0.12.1"
 jwt = { version = "0.16.0", features = ["openssl"] }
+listenfd = "1.0.0"
 log = "0.4.17"
 oauth2 = "4.2.0"
 openssl = "0.10.41"

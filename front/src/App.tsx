@@ -9,7 +9,7 @@ import React, {
 import logo from './logo.svg'
 import './App.css'
 import axios from 'axios'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { client } from './api/client'
 import { User } from './types/User'
 import { Team } from './types/Team'
@@ -259,6 +259,7 @@ function Content() {
     team ? `/api/teams/${team.id}/reactions` : null,
     fetch
   )
+  const navigate = useNavigate()
 
   return (
     <div>
@@ -267,9 +268,12 @@ function Content() {
           <h2 className="flex-1 text-lg font-bold">Emojis</h2>
 
           <div className="flex-1 flex justify-end">
-            <Button onSubmit={() => {}} value="Add Emoji"></Button>
+            <Button onSubmit={() => {
+              navigate('/emojis/new')
+            }} value="Add Emoji"></Button>
           </div>
         </div>
+
         <div className="flex flex-col">
           <div className="flex flex-row">
             <div className="flex-1 py-2">emoji</div>
@@ -310,11 +314,6 @@ function Content() {
 
 
 function App() {
-  // const logoutOnClick = useCallback(async () => {
-  //   await client.delete('/api/session')
-  //   mutate()
-  // }, [])
-
   return (
     <Layout>
       <Content />
