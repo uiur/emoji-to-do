@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import {
+import React, {
   createContext,
   useCallback,
   useContext,
@@ -15,6 +15,11 @@ import { User } from './types/User'
 import { Team } from './types/Team'
 import { Reaction } from './types/Reaction'
 import { ReactionAssignee } from './types/ReactionAssignee'
+import { AppHeader } from './components/AppHeader'
+import { NavigationHeader } from './components/NavigationHeader'
+import { ToastProvider } from './components/ToastProvider'
+import { Layout } from './components/Layout'
+import { Button } from './components/Button'
 
 const fetch = async (url: string) => {
   const res = await client.get(url)
@@ -32,10 +37,10 @@ function ReactionForm({
   const [name, setName] = useState('')
   const [repo, setRepo] = useState('')
   const onSubmit = useCallback(async () => {
-    const res = await client.post(
-      `/api/teams/${team.id}/reactions`,
-      { name, repo },
-    )
+    const res = await client.post(`/api/teams/${team.id}/reactions`, {
+      name,
+      repo,
+    })
     const reaction = res.data
     onSave(reaction)
     setName('')
@@ -75,7 +80,6 @@ function ReactionForm({
     </form>
   )
 }
-
 
 function ReactionAssigneeForm({
   reaction,
@@ -156,134 +160,165 @@ function ReactionAssigneeComponent({
   )
 }
 
+// function Content() {
+//   const { data: user } = useSWR<User>('/api/user', fetch)
+
+//   const deleteOnClick = async (reaction: Reaction) => {
+//     if (!confirm('Are you sure to delete this reaction?')) return
+
+//     const res = await client.delete(`/api/reactions/${reaction.id}`)
+//     mutateReactions()
+//   }
+
+//   return (
+//     <div>
+//       {team?.github_installation_id === null && (
+//         <a href="/auth/github">Login with GitHub</a>
+//       )}
+//       {user && (
+//         <div>
+//           <h2>user</h2>
+//           <p>
+//             {user.id} {user.slack_user_id}
+//           </p>
+//         </div>
+//       )}
+
+//       {team && (
+//         <div>
+//           <h2>team</h2>
+//           <p>
+//             {team.id} {team.name}
+//           </p>
+//         </div>
+//       )}
+
+//       <section>
+//         <h2 className="font-semibold">reaction</h2>
+
+//         <ul className="list-disc list-inside">
+//           {(reactions || []).map((reaction) => {
+//             return (
+//               <li key={reaction.id}>
+//                 <div>
+//                   <span>
+//                     id: {reaction.id}, name: {reaction.name}, repo:{' '}
+//                     <a
+//                       href={`https://github.com/${reaction.repo}`}
+//                       target="_blank"
+//                     >
+//                       {reaction.repo}
+//                     </a>
+//                   </span>
+//                   <span
+//                     className="mx-2 cursor-pointer underline"
+//                     onClick={() => deleteOnClick(reaction)}
+//                   >
+//                     delete
+//                   </span>
+//                 </div>
+//                 <div>
+//                   {reaction.reaction_assignees.map((reactionAssignee) => {
+//                     return (
+//                       <ReactionAssigneeComponent
+//                         key={reactionAssignee.id}
+//                         reactionAssignee={reactionAssignee}
+//                         onDelete={mutateReactions}
+//                       />
+//                     )
+//                   })}
+//                   <ReactionAssigneeForm
+//                     reaction={reaction}
+//                     onSave={mutateReactions}
+//                   />
+//                 </div>
+//               </li>
+//             )
+//           })}
+//         </ul>
+
+//         {team && (
+//           <div className="mt-1">
+//             <h2 className="font-semibold">create reaction</h2>
+//             <ReactionForm
+//               team={team}
+//               onSave={() => {
+//                 mutateReactions()
+//               }}
+//             />
+//           </div>
+//         )}
+//       </section>
+//     </div>
+//   )
+// }
+
 function Content() {
-  const { data: user } = useSWR<User>('/api/user', fetch)
   const { data: team } = useSWR<Team>('/api/team', fetch)
   const { data: reactions, mutate: mutateReactions } = useSWR<Reaction[]>(
     team ? `/api/teams/${team.id}/reactions` : null,
     fetch
   )
 
-  const deleteOnClick = async (reaction: Reaction) => {
-    if (!confirm('Are you sure to delete this reaction?')) return
-
-    const res = await client.delete(`/api/reactions/${reaction.id}`)
-    mutateReactions()
-  }
-
   return (
     <div>
-      { (team?.github_installation_id === null) && (
-        <a href="/auth/github">Login with GitHub</a>
-      )}
-      {user && (
-        <div>
-          <h2>user</h2>
-          <p>
-            {user.id} {user.slack_user_id}
-          </p>
+      <div className="mb-20">
+        <div className="flex flex-row items-center">
+          <h2 className="flex-1 text-lg font-bold">Emojis</h2>
+
+          <div className="flex-1 flex justify-end">
+            <Button onSubmit={() => {}} value="Add Emoji"></Button>
+          </div>
         </div>
-      )}
+        <div className="flex flex-col">
+          <div className="flex flex-row">
+            <div className="flex-1 py-2">emoji</div>
+            <div className="flex-1 py-2">repo</div>
+            <div className="flex-1 py-2">assign</div>
+            <div className="flex-1 py-2">project</div>
+            <div className="flex-1 py-2"></div>
+          </div>
 
-      {team && (
-        <div>
-          <h2>team</h2>
-          <p>
-            {team.id} {team.name}
-          </p>
-        </div>
-      )}
+          <div className="h-px bg-gray-200"></div>
 
-      <section>
-        <h2 className="font-semibold">reaction</h2>
-
-        <ul className="list-disc list-inside">
-          {(reactions || []).map((reaction) => {
+          {(reactions || []).map((reaction, index) => {
             return (
-              <li key={reaction.id}>
-                <div>
-                  <span>
-                    id: {reaction.id}, name: {reaction.name}, repo:{' '}
-                    <a
-                      href={`https://github.com/${reaction.repo}`}
-                      target="_blank"
-                    >
-                      {reaction.repo}
-                    </a>
-                  </span>
-                  <span
-                    className="mx-2 cursor-pointer underline"
-                    onClick={() => deleteOnClick(reaction)}
-                  >
-                    delete
-                  </span>
+              <div key={reaction.id} className="flex flex-row">
+                <div className="flex-1 py-2">{reaction.name}</div>
+                <div className="flex-1 py-2">{reaction.repo}</div>
+                <div className="flex-1 py-2">
+                  {reaction.reaction_assignees
+                    .map((reactionAssignee) => {
+                      reactionAssignee.name
+                    })
+                    .join(' ')}
                 </div>
-                <div>
-                  {reaction.reaction_assignees.map((reactionAssignee) => {
-                    return (
-                      <ReactionAssigneeComponent
-                        key={reactionAssignee.id}
-                        reactionAssignee={reactionAssignee}
-                        onDelete={mutateReactions}
-                      />
-                    )
-                  })}
-                  <ReactionAssigneeForm
-                    reaction={reaction}
-                    onSave={mutateReactions}
-                  />
+                <div className="flex-1 py-2"></div>
+                <div className="flex-1 py-2 flex justify-end">
+                  <div className="mr-3">edit</div>
+                  <div className="mr-3">delete</div>
                 </div>
-              </li>
+              </div>
             )
           })}
-        </ul>
-
-        {team && (
-          <div className="mt-1">
-            <h2 className="font-semibold">create reaction</h2>
-            <ReactionForm
-              team={team}
-              onSave={() => {
-                mutateReactions()
-              }}
-            />
-          </div>
-        )}
-      </section>
+        </div>
+      </div>
     </div>
   )
 }
 
-function App() {
-  const { data: user, mutate } = useSWR<User>('/api/user', fetch)
 
-  const logoutOnClick = useCallback(async () => {
-    await client.delete('/api/session')
-    mutate()
-  }, [])
+
+function App() {
+  // const logoutOnClick = useCallback(async () => {
+  //   await client.delete('/api/session')
+  //   mutate()
+  // }, [])
 
   return (
-    <div className="container mx-auto">
-      <h1 className="text-3xl font-bold underline">emoji-to-do</h1>
-
-      {!user && <Link to="/auth/slack">Login with Slack</Link>}
-
-      <div>
-        <Link to="/login">Login</Link>
-      </div>
-
-      {user && <Content />}
-
-      <div>
-        {
-          user && (
-            <div className="cursor-pointer underline" onClick={logoutOnClick}>
-              Logout
-            </div>
-          )
-        }
-      </div>
-    </div>
+    <Layout>
+      <Content />
+    </Layout>
   )
 }
 
