@@ -10,14 +10,14 @@ import logo from './logo.svg'
 import './App.css'
 import axios from 'axios'
 import { Link, useNavigate } from 'react-router-dom'
-import { client } from './api/client'
+import { apiDelete, client } from './api/client'
 import { User } from './types/User'
 import { Team } from './types/Team'
 import { Reaction } from './types/Reaction'
 import { ReactionAssignee } from './types/ReactionAssignee'
 import { AppHeader } from './components/AppHeader'
 import { NavigationHeader } from './components/NavigationHeader'
-import { ToastProvider } from './components/ToastProvider'
+import { ToastProvider, useToastSetter } from './components/ToastProvider'
 import { Layout } from './components/Layout'
 import { Button } from './components/Button'
 
@@ -253,6 +253,40 @@ function ReactionAssigneeComponent({
 //   )
 // }
 
+function ReactionRow({ reaction, onDelete = () => {} }: { reaction: Reaction, onDelete?: () => void }) {
+  const setToast = useToastSetter()
+  const deleteOnClick = async (reaction: Reaction) => {
+    if (!confirm('Are you sure to delete this reaction?')) return
+
+    const { err } = await apiDelete(`/api/reactions/${reaction.id}`)
+    if (err) {
+      setToast(err.message)
+    } else {
+      onDelete()
+    }
+  }
+
+  return (
+    <div key={reaction.id} className="flex flex-row">
+    <div className="flex-1 py-2">{reaction.name}</div>
+    <div className="flex-1 py-2">{reaction.repo}</div>
+    <div className="flex-1 py-2">
+      {reaction.reaction_assignees
+        .map((reactionAssignee) => {
+          reactionAssignee.name
+        })
+        .join(' ')}
+    </div>
+    <div className="flex-1 py-2"></div>
+    <div className="flex-1 py-2 flex justify-end">
+      <div className="mr-3">edit</div>
+      <button className="mr-3" onClick={() => deleteOnClick(reaction)}>delete</button>
+    </div>
+  </div>
+  )
+
+}
+
 function Content() {
   const { data: team } = useSWR<Team>('/api/team', fetch)
   const { data: reactions, mutate: mutateReactions } = useSWR<Reaction[]>(
@@ -287,22 +321,7 @@ function Content() {
 
           {(reactions || []).map((reaction, index) => {
             return (
-              <div key={reaction.id} className="flex flex-row">
-                <div className="flex-1 py-2">{reaction.name}</div>
-                <div className="flex-1 py-2">{reaction.repo}</div>
-                <div className="flex-1 py-2">
-                  {reaction.reaction_assignees
-                    .map((reactionAssignee) => {
-                      reactionAssignee.name
-                    })
-                    .join(' ')}
-                </div>
-                <div className="flex-1 py-2"></div>
-                <div className="flex-1 py-2 flex justify-end">
-                  <div className="mr-3">edit</div>
-                  <div className="mr-3">delete</div>
-                </div>
-              </div>
+              <ReactionRow key={reaction.id} reaction={reaction} onDelete={() => { mutateReactions() }} />
             )
           })}
         </div>

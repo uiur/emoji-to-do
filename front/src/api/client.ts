@@ -17,3 +17,6 @@ function wrapResponse(promise: Promise<AxiosResponse<any, any>>): Promise<Result
 export function apiPost(url: string, data: any = {}) {
   return wrapResponse(client.post(url, data))
 }
+export function apiDelete(url: string, data: any = {}) {
+  return wrapResponse(client.delete(url, data))
+}

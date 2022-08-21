@@ -17,7 +17,6 @@ export function Settings() {
       <div className='mt-4'>
         <h1 className='text-lg font-bold mb-4'>Settings</h1>
         <Button value='Logout' onSubmit={logoutOnClick} />
-
       </div>
     </Layout>
   )
