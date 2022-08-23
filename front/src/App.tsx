@@ -253,7 +253,13 @@ function ReactionAssigneeComponent({
 //   )
 // }
 
-function ReactionRow({ reaction, onDelete = () => {} }: { reaction: Reaction, onDelete?: () => void }) {
+function ReactionRow({
+  reaction,
+  onDelete = () => {},
+}: {
+  reaction: Reaction
+  onDelete?: () => void
+}) {
   const setToast = useToastSetter()
   const deleteOnClick = async (reaction: Reaction) => {
     if (!confirm('Are you sure to delete this reaction?')) return
@@ -268,23 +274,26 @@ function ReactionRow({ reaction, onDelete = () => {} }: { reaction: Reaction, on
 
   return (
     <div key={reaction.id} className="flex flex-row">
-    <div className="flex-1 py-2">{reaction.name}</div>
-    <div className="flex-1 py-2">{reaction.repo}</div>
-    <div className="flex-1 py-2">
-      {reaction.reaction_assignees
-        .map((reactionAssignee) => {
-          reactionAssignee.name
-        })
-        .join(' ')}
+      <div className="flex-1 py-2">{reaction.name}</div>
+      <div className="flex-1 py-2">{reaction.repo}</div>
+      <div className="flex-1 py-2">
+        {reaction.reaction_assignees
+          .map((reactionAssignee) => {
+            reactionAssignee.name
+          })
+          .join(' ')}
+      </div>
+      <div className="flex-1 py-2"></div>
+      <div className="flex-1 py-2 flex justify-end">
+        <Link className="mr-3" to={`/emojis/${reaction.id}/edit`}>
+          edit
+        </Link>
+        <button className="mr-3" onClick={() => deleteOnClick(reaction)}>
+          delete
+        </button>
+      </div>
     </div>
-    <div className="flex-1 py-2"></div>
-    <div className="flex-1 py-2 flex justify-end">
-      <div className="mr-3">edit</div>
-      <button className="mr-3" onClick={() => deleteOnClick(reaction)}>delete</button>
-    </div>
-  </div>
   )
-
 }
 
 function Content() {
@@ -302,9 +311,12 @@ function Content() {
           <h2 className="flex-1 text-lg font-bold">Emojis</h2>
 
           <div className="flex-1 flex justify-end">
-            <Button onSubmit={() => {
-              navigate('/emojis/new')
-            }} value="Add Emoji"></Button>
+            <Button
+              onSubmit={() => {
+                navigate('/emojis/new')
+              }}
+              value="Add Emoji"
+            ></Button>
           </div>
         </div>
 
@@ -321,7 +333,13 @@ function Content() {
 
           {(reactions || []).map((reaction, index) => {
             return (
-              <ReactionRow key={reaction.id} reaction={reaction} onDelete={() => { mutateReactions() }} />
+              <ReactionRow
+                key={reaction.id}
+                reaction={reaction}
+                onDelete={() => {
+                  mutateReactions()
+                }}
+              />
             )
           })}
         </div>
@@ -329,8 +347,6 @@ function Content() {
     </div>
   )
 }
-
-
 
 function App() {
   return (

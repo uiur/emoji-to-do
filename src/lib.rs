@@ -88,6 +88,10 @@ pub fn run(
             )
             .route(
                 "/api/reactions/{reaction_id}",
+                web::get().to(api::reaction::get_reaction),
+            )
+            .route(
+                "/api/reactions/{reaction_id}",
                 web::delete().to(api::reaction::destroy_reaction),
             )
             .route(

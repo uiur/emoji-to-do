@@ -104,6 +104,36 @@ pub async fn create_reaction(
     Ok(HttpResponse::Created().json(reaction))
 }
 
+pub async fn get_reaction(
+    connection: web::Data<sea_orm::DatabaseConnection>,
+    path: web::Path<(i32,)>,
+    req: HttpRequest,
+) -> actix_web::Result<impl Responder> {
+    let user = get_current_user(&connection, &req)
+        .await
+        .ok_or_else(|| ErrorUnauthorized(""))?;
+
+    let (reaction_id,) = path.into_inner();
+    let reaction = entities::prelude::Reaction::find_by_id(reaction_id)
+        .one(connection.as_ref())
+        .await
+        .map_err(ErrorInternalServerError)?
+        .ok_or_else(|| ErrorNotFound("reaction not found"))?;
+
+    let team = reaction
+        .find_related(entities::prelude::Team)
+        .one(connection.as_ref())
+        .await
+        .map_err(ErrorInternalServerError)?
+        .ok_or_else(|| ErrorNotFound("team not found"))?;
+
+    if user.slack_team_id != team.slack_team_id {
+        return Ok(HttpResponse::Forbidden().finish());
+    }
+
+    Ok(HttpResponse::Ok().json(reaction))
+}
+
 pub type UpdateReactionRequestBody = CreateReactionRequestBody;
 
 pub async fn put_reaction(
