@@ -278,10 +278,8 @@ function ReactionRow({
       <div className="flex-1 py-2">{reaction.repo}</div>
       <div className="flex-1 py-2">
         {reaction.reaction_assignees
-          .map((reactionAssignee) => {
-            reactionAssignee.name
-          })
-          .join(' ')}
+          .map((reactionAssignee) => reactionAssignee.name)
+          .join(', ')}
       </div>
       <div className="flex-1 py-2"></div>
       <div className="flex-1 py-2 flex justify-end">

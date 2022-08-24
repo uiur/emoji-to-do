@@ -15,22 +15,24 @@ export function EmojisNew() {
 
   const [name, setName] = useState('')
   const [repo, setRepo] = useState('')
+  const [assignees, setAssignees] = useState<string[]>([''])
   const onSubmit = useCallback(async () => {
-      if (team === undefined) return
-      const { res, err } = await apiPost(`/api/teams/${team.id}/reactions`, {
+    if (team === undefined) return
+    const { res, err } = await apiPost(`/api/teams/${team.id}/reactions`, {
+      name,
+      repo,
+      reaction_assignees: assignees.map((name) => ({
         name,
-        repo,
-      })
-      if (err) {
-        setToast(err.message)
-      } else {
-        setName('')
-        setRepo('')
-        navigate('/')
-      }
-    },
-    [team, name, repo]
-  )
+      })),
+    })
+    if (err) {
+      setToast(err.message)
+    } else {
+      setName('')
+      setRepo('')
+      navigate('/')
+    }
+  }, [team, name, repo, assignees])
 
   return (
     <Layout>
@@ -40,7 +42,13 @@ export function EmojisNew() {
         </div>
 
         <div className="flex flex-row mt-4">
-          <form className="flex-1 flex flex-col space-y-4" onSubmit={(e) => {e.preventDefault(); onSubmit()}}>
+          <form
+            className="flex-1 flex flex-col space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              onSubmit()
+            }}
+          >
             <div className="flex flex-col">
               <label className="text-md font-bold mb-2">emoji</label>
               <input
@@ -65,11 +73,50 @@ export function EmojisNew() {
               ></input>
             </div>
 
-            <input
-              type="submit"
-              value="Add Emoji"
-              className={ButtonStyle()}
-            />
+            <div className="flex flex-col">
+              <label className="text-md font-bold mb-2">assignees</label>
+              {assignees.map((assignee, index) => {
+                return (
+                  <div className="flex flex-row mb-2">
+                    <input
+                      key={index}
+                      className="flex-1 border-2 border-stone-200 rounded px-3 py-2"
+                      type="text"
+                      value={assignee}
+                      onChange={(e) => {
+                        const newAssignees = assignees.slice()
+                        newAssignees[index] = e.currentTarget.value
+                        setAssignees(newAssignees)
+                      }}
+                    />
+
+                    <button
+                      className="w-12"
+                      onClick={() => {
+                        const newAssignees = assignees.slice()
+                        newAssignees.splice(index, 1)
+                        setAssignees(newAssignees)
+                      }}
+                    >
+                      -
+                    </button>
+                  </div>
+                )
+              })}
+              <button
+                className={[ButtonStyle(), 'mt-2'].join(' ')}
+                onClick={(e) => {
+                  e.preventDefault()
+                  const newAssignees = assignees.slice()
+                  newAssignees.push('')
+                  setAssignees(newAssignees)
+                }}
+              >
+                Add
+              </button>
+            </div>
+
+            <input type="submit" value="Add Emoji" className={ButtonStyle()} />
           </form>
 
           <div className="flex-1"></div>

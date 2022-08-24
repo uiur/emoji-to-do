@@ -18,6 +18,7 @@ function Form({ reaction, submitText, onSave }: { reaction: Reaction, submitText
     const { res, err } = await apiPut(`/api/reactions/${reaction.id}`, {
       name,
       repo,
+      reaction_assignees: []
     })
 
     if (err) {

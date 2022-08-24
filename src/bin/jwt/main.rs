@@ -1,9 +1,7 @@
-use std::{env, fs::File, io::Read, time::SystemTime};
-
-use hmac::Mac;
 use jwt::{PKeyWithDigest, SignWithKey};
 use openssl::{hash::MessageDigest, pkey::PKey};
 use serde_json::json;
+use std::{env, fs::File, io::Read, time::SystemTime};
 
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

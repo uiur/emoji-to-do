@@ -2,9 +2,8 @@
 use std::assert_matches::assert_matches;
 
 use emoji_to_do::entities;
-use hmac::Mac;
 
-use sea_orm::{EntityTrait, Set};
+use sea_orm::{EntityTrait, ModelTrait, Set};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -125,7 +124,11 @@ async fn test_api_create_reaction() -> Result<(), Box<dyn std::error::Error>> {
     let response = client
         .post(format!("{}/api/teams/{}/reactions", host, team_id))
         .json(&json!({
-                  "name": "eyes", "repo": "uiur/sandbox"
+                  "name": "eyes",
+                  "repo": "uiur/sandbox",
+                  "reaction_assignees": [
+                    { "name": "uiur" }
+                  ]
         }))
         .send()
         .await
@@ -138,6 +141,14 @@ async fn test_api_create_reaction() -> Result<(), Box<dyn std::error::Error>> {
         .one(&connection)
         .await?;
     assert_matches!(optional_reaction, Some(_));
+
+    if let Some(reaction) = optional_reaction {
+        let reaction_assignees = reaction
+            .find_related(entities::prelude::ReactionAssignee)
+            .all(&connection)
+            .await?;
+        assert_eq!(reaction_assignees.len(), 1);
+    }
 
     Ok(())
 }
@@ -170,7 +181,10 @@ async fn test_api_update_reaction() -> Result<(), Box<dyn std::error::Error>> {
         .put(format!("{}/api/reactions/{}", host, reaction_id))
         .json(&json!({
           "name": "eyes",
-          "repo": "uiur/sandbox2"
+          "repo": "uiur/sandbox2",
+          "reaction_assignees": [
+            {"name": "uiur"}
+          ]
         }))
         .send()
         .await

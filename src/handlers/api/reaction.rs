@@ -1,12 +1,16 @@
+use std::{collections::HashSet, option};
+
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
     web, HttpRequest, HttpResponse, Responder,
 };
 
-use sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel, ModelTrait, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, Set,
+};
 use serde::{Deserialize, Serialize};
 
-use crate::entities;
+use crate::entities::{self, reaction_assignee};
 
 use super::get_current_user;
 
@@ -62,6 +66,12 @@ pub async fn get_reactions(
 pub struct CreateReactionRequestBody {
     pub name: String,
     pub repo: String,
+    pub reaction_assignees: Vec<CreateReactionRequestReactionAssignee>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateReactionRequestReactionAssignee {
+    pub name: String,
 }
 
 pub async fn create_reaction(
@@ -94,8 +104,20 @@ pub async fn create_reaction(
     .save(connection.as_ref())
     .await
     .map_err(ErrorInternalServerError)?;
+    let reaction_id = reaction.id.unwrap();
 
-    let reaction = entities::prelude::Reaction::find_by_id(reaction.id.unwrap())
+    for body in &body.reaction_assignees {
+        entities::reaction_assignee::ActiveModel {
+            reaction_id: Set(reaction_id),
+            name: Set(body.name.clone()),
+            ..Default::default()
+        }
+        .insert(connection.as_ref())
+        .await
+        .map_err(ErrorInternalServerError)?;
+    }
+
+    let reaction = entities::prelude::Reaction::find_by_id(reaction_id)
         .one(connection.as_ref())
         .await
         .map_err(ErrorInternalServerError)?
@@ -178,6 +200,53 @@ pub async fn put_reaction(
         .await
         .map_err(ErrorInternalServerError)?
         .ok_or_else(|| ErrorNotFound("reaction is not found"))?;
+
+    let mut reaction_assignee_ids: HashSet<i32> = HashSet::new();
+    for reaction_assignee_body in &body.reaction_assignees {
+        let optional_reaction_assignee = reaction
+            .find_related(entities::prelude::ReactionAssignee)
+            .filter(
+                entities::reaction_assignee::Column::Name.eq(reaction_assignee_body.name.clone()),
+            )
+            .one(connection.as_ref())
+            .await
+            .map_err(ErrorInternalServerError)?;
+
+        match optional_reaction_assignee {
+            Some(reaction_assignee) => {
+                reaction_assignee_ids.insert(reaction_assignee.id);
+            }
+            None => {
+                let reaction_assignee = entities::reaction_assignee::ActiveModel {
+                    reaction_id: Set(reaction.id),
+                    name: Set(reaction_assignee_body.name.clone()),
+                    ..Default::default()
+                }
+                .insert(connection.as_ref())
+                .await
+                .map_err(ErrorInternalServerError)?;
+                reaction_assignee_ids.insert(reaction_assignee.id);
+            }
+        }
+    }
+
+    let reaction_assignees = reaction
+        .find_related(entities::prelude::ReactionAssignee)
+        .all(connection.as_ref())
+        .await
+        .map_err(ErrorInternalServerError)?;
+
+    let ids = HashSet::from_iter(
+        reaction_assignees
+            .iter()
+            .map(|reaction_assignee| reaction_assignee.id),
+    );
+    let ids_to_remove: Vec<_> = ids.difference(&reaction_assignee_ids).cloned().collect();
+    entities::prelude::ReactionAssignee::delete_many()
+        .filter(entities::reaction_assignee::Column::Id.is_in(ids_to_remove))
+        .exec(connection.as_ref())
+        .await
+        .map_err(ErrorInternalServerError)?;
 
     Ok(HttpResponse::Ok().json(reaction))
 }
