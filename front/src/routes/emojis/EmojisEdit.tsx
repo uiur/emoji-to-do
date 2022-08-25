@@ -1,79 +1,33 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { apiPost, apiPut, client } from '../../api/client'
-import { Button, ButtonStyle } from '../../components/Button'
+import { useCallback } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { apiPut } from '../../api/client'
 import { Layout } from '../../components/Layout'
 import { useToastSetter } from '../../components/ToastProvider'
 import { useReaction } from '../../hooks/useReaction'
-import { useTeam } from '../../hooks/useTeam'
-import { useUser } from '../../hooks/useUser'
-import { Reaction } from '../../types/Reaction'
+import { EmojiForm, EmojiFormResult } from './EmojiForm'
 
-function Form({ reaction, submitText, onSave }: { reaction: Reaction, submitText: string, onSave: () => void }) {
-  const [name, setName] = useState(reaction.name)
-  const [repo, setRepo] = useState(reaction.repo)
+export function EmojisEdit() {
+  const { id } = useParams()
+  const { data: reaction, mutate } = useReaction(Number(id))
   const setToast = useToastSetter()
 
-  const formOnSubmit = useCallback(async () => {
+  const navigate = useNavigate()
+  const onSubmit = useCallback(async ({ name, repo, assignees }: EmojiFormResult) => {
+    if (reaction === undefined) return
+
     const { res, err } = await apiPut(`/api/reactions/${reaction.id}`, {
       name,
       repo,
-      reaction_assignees: []
+      reaction_assignees: assignees.map(name => ({ name }))
     })
 
     if (err) {
       setToast(err.message)
     } else {
-      onSave()
+      mutate()
+      navigate('/')
     }
-  }, [name, repo])
-
-  return (
-    <form
-      className="flex-1 flex flex-col space-y-4"
-      onSubmit={(e) => {
-        e.preventDefault()
-        formOnSubmit()
-      }}
-    >
-      <div className="flex flex-col">
-        <label className="text-md font-bold mb-2">emoji</label>
-        <input
-          className="border-2 border-stone-200 rounded px-3 py-2"
-          type="text"
-          value={name}
-          onChange={(e) => {
-            setName(e.currentTarget.value)
-          }}
-        ></input>
-      </div>
-
-      <div className="flex flex-col">
-        <label className="text-md font-bold mb-2">repo</label>
-        <input
-          className="border-2 border-stone-200 rounded px-3 py-2"
-          type="text"
-          value={repo}
-          onChange={(e) => {
-            setRepo(e.currentTarget.value)
-          }}
-        ></input>
-      </div>
-
-      <input type="submit" value={submitText} className={ButtonStyle()} />
-    </form>
-  )
-}
-
-export function EmojisEdit() {
-  const { id } = useParams()
-  const { data: reaction, mutate } = useReaction(Number(id))
-
-  const navigate = useNavigate()
-  const onSave = useCallback(() => {
-    mutate()
-    navigate('/')
-  }, [])
+  }, [reaction])
 
   return (
     <Layout>
@@ -84,7 +38,7 @@ export function EmojisEdit() {
 
         <div className="flex flex-row mt-4">
           <div className="flex-1">
-            {reaction !== undefined && <Form reaction={reaction} submitText='Save' onSave={onSave}></Form>}
+            {reaction !== undefined && <EmojiForm reaction={reaction} onSubmit={onSubmit}></EmojiForm>}
           </div>
 
           <div className="flex-1"></div>

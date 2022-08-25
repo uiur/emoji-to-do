@@ -153,7 +153,18 @@ pub async fn get_reaction(
         return Ok(HttpResponse::Forbidden().finish());
     }
 
-    Ok(HttpResponse::Ok().json(reaction))
+    let reaction_assignees = reaction
+        .find_related(entities::prelude::ReactionAssignee)
+        .all(connection.as_ref())
+        .await
+        .map_err(ErrorInternalServerError)?;
+
+    Ok(HttpResponse::Ok().json(ReactionResponse {
+        id: reaction.id,
+        name: reaction.name,
+        repo: reaction.repo,
+        reaction_assignees,
+    }))
 }
 
 pub type UpdateReactionRequestBody = CreateReactionRequestBody;
